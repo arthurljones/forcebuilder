@@ -22,7 +22,7 @@ class MainActivityViewModel: ViewModel() {
       availableMechs,
       maxPointValue
     ) { available, maxPv ->
-      available?.also {
+      available?.let {
         val chooser = SimpleForceChooser(
           criteria = MaxPV(maxPv),
           comparator = MaximizePV()
@@ -76,8 +76,10 @@ class SimpleForceChooser(
   val comparator: ForceComparator
 ): ForceRequirement by criteria, ForceComparator by comparator
 
-private fun <T> chooseMechs(mechs: List<MechInfo>, chooser: T): List<MechInfo>
-        where T: ForceComparator, T: ForceRequirement {
+private fun <T> chooseMechs(
+  mechs: List<MechInfo>,
+  chooser: T
+): List<MechInfo> where T: ForceComparator, T: ForceRequirement {
   // Maximize PV under the maximum
   var current = emptyList<MechInfo>()
   // Sort available by chooser to approximate best first
@@ -91,6 +93,7 @@ private fun <T> chooseMechs(mechs: List<MechInfo>, chooser: T): List<MechInfo>
     val next = available.firstOrNull {
       chooser.meetsRequirement(current + it)
     }
+    println("next: $next")
     next?.also {
       current = current + it
       available = available - it
