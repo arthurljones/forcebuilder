@@ -86,6 +86,7 @@ private fun <T> chooseMechs(
   var available = mechs
     .map { listOf(it) }
     .sortedWith(chooser)
+    .reversed()
     .map { it.first() }
 
   // First, fill up the list with the highest value options
