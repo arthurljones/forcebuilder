@@ -74,7 +74,7 @@ class MainActivity: ComponentActivity() {
     snackbarHostState: SnackbarHostState
   ) {
     val scope = rememberCoroutineScope()
-    Text("Settings", style = MaterialTheme.typography.titleMedium)
+    Text("Settings", style = MaterialTheme.typography.titleLarge)
     val maxPv by model.maxPointValue.collectAsStateWithLifecycle()
     val max = 800
     val step = 10
@@ -107,7 +107,7 @@ class MainActivity: ComponentActivity() {
     }
 
     HorizontalDivider(Modifier.padding(vertical = 16.dp))
-    Text("Force", style = MaterialTheme.typography.titleMedium)
+    Text("Force", style = MaterialTheme.typography.titleLarge)
 
     val locked by model.lockedUnits.collectAsStateWithLifecycle()
     val results by model.result.collectAsStateWithLifecycle()
@@ -139,7 +139,7 @@ class MainActivity: ComponentActivity() {
     }
 
     HorizontalDivider(Modifier.padding(vertical = 16.dp))
-    Text("Actions", style = MaterialTheme.typography.titleMedium)
+    Text("Actions", style = MaterialTheme.typography.titleLarge)
 
     Row(
       horizontalArrangement = Arrangement.spacedBy(8.dp)
