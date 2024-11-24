@@ -38,7 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class MainActivity: ComponentActivity() {
   private val model: MainActivityViewModel by viewModels()
@@ -72,10 +72,13 @@ class MainActivity: ComponentActivity() {
     val scope = rememberCoroutineScope()
     Text("Settings", style = MaterialTheme.typography.titleMedium)
     val maxPv by model.maxPointValue.collectAsStateWithLifecycle()
+    val max = 800
+    val step = 10
     Slider(
       value = maxPv.toFloat(),
-      onValueChange = { model.maxPointValue.value = it.toInt() },
-      valueRange = 0f..800f
+      onValueChange = { model.maxPointValue.value = it.roundToInt() },
+      steps = max / step - 1,
+      valueRange = 0f..max.toFloat()
     )
     val pattern = remember { Regex("""^(?:\d+)?$""") }
     TextField(
