@@ -62,14 +62,14 @@ data class ForceChooser(
   val comparator: ForceComparator,
   val presortMode: PresortMode = PresortMode.None,
 ) {
-  fun chooseUnits(units: List<UnitInfo>): List<UnitInfo> {
-    // Maximize PV under the maximum
-    var current = emptyList<UnitInfo>()
+  fun chooseUnits(units: List<UnitInfo>, forced: Set<UnitInfo>): List<UnitInfo> {
+    var current = forced.toList()
+    val starting = units - forced
     var available = when (presortMode) {
-      PresortMode.None -> units
-      PresortMode.Random -> units.shuffled()
-      PresortMode.BestFirst -> sortByComparator(units).reversed()
-      PresortMode.WorstFirst -> sortByComparator(units)
+      PresortMode.None -> starting
+      PresortMode.Random -> starting.shuffled()
+      PresortMode.BestFirst -> sortByComparator(starting).reversed()
+      PresortMode.WorstFirst -> sortByComparator(starting)
     }
 
     // First, fill up the list with the highest value options

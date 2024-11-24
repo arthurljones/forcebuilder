@@ -13,13 +13,19 @@ import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.model.ForceChooser
 import tech.ajones.forcebuilder.model.MaxPV
 import tech.ajones.forcebuilder.model.MaximizePV
-import tech.ajones.forcebuilder.model.UnitInfo
 import tech.ajones.forcebuilder.model.PresortMode
+import tech.ajones.forcebuilder.model.UnitInfo
 
 class MainActivityViewModel: ViewModel() {
   val availableMechs: MutableStateFlow<List<UnitInfo>?> = MutableStateFlow(null)
   val maxPointValue: MutableStateFlow<Int> = MutableStateFlow(300)
   private val randomizeCount: MutableStateFlow<Int> = MutableStateFlow(0)
+
+  /**
+   * Units in this set will be in each generated force, even if they don't meet
+   * the selected requirements
+   */
+  val lockedUnits: MutableStateFlow<Set<UnitInfo>> = MutableStateFlow(emptySet())
 
   val result: StateFlow<List<UnitInfo>?> =
     combine(
@@ -32,7 +38,9 @@ class MainActivityViewModel: ViewModel() {
           requirement = MaxPV(maxPv),
           comparator = MaximizePV(),
           presortMode = PresortMode.Random
-        ).chooseUnits(it)
+          // We don't include `lockedUnits` in the `combine` call above because
+          // we don't want to regenerate when it changes.
+        ).chooseUnits(units = it, forced = lockedUnits.value)
       }
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 

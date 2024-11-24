@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.update
 import kotlin.math.roundToInt
 
 class MainActivity: ComponentActivity() {
@@ -105,16 +109,29 @@ class MainActivity: ComponentActivity() {
     HorizontalDivider(Modifier.padding(vertical = 16.dp))
     Text("Force", style = MaterialTheme.typography.titleMedium)
 
+    val locked by model.lockedUnits.collectAsStateWithLifecycle()
     val results by model.result.collectAsStateWithLifecycle()
     results?.also { units ->
       val statsStyle = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold)
       Text("Count: ${units.size}", style = statsStyle)
       Text("PV: ${units.sumOf { it.pointsValue }}", style = statsStyle)
       Spacer(modifier = Modifier.height(8.dp))
-      units.forEach {
-        Row {
-          //Checkbox(checked = false)
-          Text(it.toString())
+      units.forEach { unit ->
+        Row(modifier = Modifier.height(32.dp)
+          .clickable {
+            model.lockedUnits.update { if (it.contains(unit)) it - unit else it + unit }
+          }
+        ) {
+          Checkbox(
+            checked = locked.contains(unit),
+            onCheckedChange = { checked ->
+              model.lockedUnits.update { if (checked) it + unit else it - unit }
+            }
+          )
+          Text(
+            text = unit.toString(),
+            modifier = Modifier.align(Alignment.CenterVertically)
+          )
         }
       }
     } ?: run {
