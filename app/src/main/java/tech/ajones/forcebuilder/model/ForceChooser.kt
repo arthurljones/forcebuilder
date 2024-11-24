@@ -1,5 +1,5 @@
 package tech.ajones.forcebuilder.model
-interface ForceComparator: Comparator<List<MechInfo>>
+interface ForceComparator: Comparator<List<UnitInfo>>
 
 sealed interface ForceRequirementMatch {
   /**
@@ -17,24 +17,24 @@ sealed interface ForceRequirementMatch {
 }
 
 interface ForceRequirement {
-  fun checkForce(force: List<MechInfo>): ForceRequirementMatch
+  fun checkForce(force: List<UnitInfo>): ForceRequirementMatch
 }
 
 class NoRequirement: ForceRequirement {
-  override fun checkForce(force: List<MechInfo>): ForceRequirementMatch =
+  override fun checkForce(force: List<UnitInfo>): ForceRequirementMatch =
     ForceRequirementMatch.Full
 }
 
-private val List<MechInfo>.pvSum: Int
+private val List<UnitInfo>.pvSum: Int
   get() = sumOf { it.pointsValue }
 
 class MaximizePV: ForceComparator {
-  override fun compare(p0: List<MechInfo>?, p1: List<MechInfo>?): Int =
+  override fun compare(p0: List<UnitInfo>?, p1: List<UnitInfo>?): Int =
     compareValues(p0?.pvSum, p1?.pvSum)
 }
 
 class MaxPV(val maxPv: Int): ForceRequirement {
-  override fun checkForce(force: List<MechInfo>): ForceRequirementMatch =
+  override fun checkForce(force: List<UnitInfo>): ForceRequirementMatch =
     if (force.pvSum <= maxPv) ForceRequirementMatch.Full else ForceRequirementMatch.Forbidden
 }
 
@@ -62,14 +62,14 @@ data class ForceChooser(
   val comparator: ForceComparator,
   val presortMode: PresortMode = PresortMode.None,
 ) {
-  fun chooseMechs(mechs: List<MechInfo>): List<MechInfo> {
+  fun chooseUnits(units: List<UnitInfo>): List<UnitInfo> {
     // Maximize PV under the maximum
-    var current = emptyList<MechInfo>()
+    var current = emptyList<UnitInfo>()
     var available = when (presortMode) {
-      PresortMode.None -> mechs
-      PresortMode.Random -> mechs.shuffled()
-      PresortMode.BestFirst -> sortByComparator(mechs).reversed()
-      PresortMode.WorstFirst -> sortByComparator(mechs)
+      PresortMode.None -> units
+      PresortMode.Random -> units.shuffled()
+      PresortMode.BestFirst -> sortByComparator(units).reversed()
+      PresortMode.WorstFirst -> sortByComparator(units)
     }
 
     // First, fill up the list with the highest value options
@@ -88,8 +88,8 @@ data class ForceChooser(
     return current
   }
 
-  private fun sortByComparator(mechs: List<MechInfo>): List<MechInfo> =
-    mechs
+  private fun sortByComparator(units: List<UnitInfo>): List<UnitInfo> =
+    units
       .map { listOf(it) }
       .sortedWith(comparator)
       .map { it.first() }

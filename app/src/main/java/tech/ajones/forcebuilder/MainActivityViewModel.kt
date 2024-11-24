@@ -13,15 +13,15 @@ import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.model.ForceChooser
 import tech.ajones.forcebuilder.model.MaxPV
 import tech.ajones.forcebuilder.model.MaximizePV
-import tech.ajones.forcebuilder.model.MechInfo
+import tech.ajones.forcebuilder.model.UnitInfo
 import tech.ajones.forcebuilder.model.PresortMode
 
 class MainActivityViewModel: ViewModel() {
-  val availableMechs: MutableStateFlow<List<MechInfo>?> = MutableStateFlow(null)
+  val availableMechs: MutableStateFlow<List<UnitInfo>?> = MutableStateFlow(null)
   val maxPointValue: MutableStateFlow<Int> = MutableStateFlow(300)
   private val randomizeCount: MutableStateFlow<Int> = MutableStateFlow(0)
 
-  val result: StateFlow<List<MechInfo>?> =
+  val result: StateFlow<List<UnitInfo>?> =
     combine(
       availableMechs,
       maxPointValue,
@@ -32,7 +32,7 @@ class MainActivityViewModel: ViewModel() {
           requirement = MaxPV(maxPv),
           comparator = MaximizePV(),
           presortMode = PresortMode.Random
-        ).chooseMechs(it)
+        ).chooseUnits(it)
       }
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
@@ -46,7 +46,7 @@ class MainActivityViewModel: ViewModel() {
           variant1.takeIf { it.isNotBlank() }?.let { it to pv1 },
           variant2.takeIf { it.isNotBlank() }?.let { it to pv2 }
         ).map { (variant, pv) ->
-          MechInfo(chassis = name, variant = variant, pointsValue = pv.toInt())
+          UnitInfo(chassis = name, variant = variant, pointsValue = pv.toInt())
         }
       }.flatten()
   }

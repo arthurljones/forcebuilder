@@ -1,6 +1,6 @@
 package tech.ajones.forcebuilder.model
 
-data class MechInfo(
+data class UnitInfo(
   val chassis: String,
   val variant: String,
   val pointsValue: Int

@@ -106,12 +106,12 @@ class MainActivity: ComponentActivity() {
     Text("Force", style = MaterialTheme.typography.titleMedium)
 
     val results by model.result.collectAsStateWithLifecycle()
-    results?.also { mechs ->
+    results?.also { units ->
       val statsStyle = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold)
-      Text("Count: ${mechs.size}", style = statsStyle)
-      Text("PV: ${mechs.sumOf { it.pointsValue }}", style = statsStyle)
+      Text("Count: ${units.size}", style = statsStyle)
+      Text("PV: ${units.sumOf { it.pointsValue }}", style = statsStyle)
       Spacer(modifier = Modifier.height(8.dp))
-      mechs.forEach {
+      units.forEach {
         Row {
           //Checkbox(checked = false)
           Text(it.toString())
