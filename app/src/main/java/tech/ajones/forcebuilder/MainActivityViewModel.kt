@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 operator fun <T> List<T>.component6(): T = get(5)
 operator fun <T> List<T>.component7(): T = get(6)
@@ -16,18 +17,20 @@ operator fun <T> List<T>.component7(): T = get(6)
 class MainActivityViewModel: ViewModel() {
   val availableMechs: MutableStateFlow<List<MechInfo>?> = MutableStateFlow(null)
   val maxPointValue: MutableStateFlow<Int> = MutableStateFlow(300)
+  private val randomizeCount: MutableStateFlow<Int> = MutableStateFlow(0)
 
   val result: StateFlow<List<MechInfo>?> =
     combine(
       availableMechs,
-      maxPointValue
-    ) { available, maxPv ->
+      maxPointValue,
+      randomizeCount
+    ) { available, maxPv, _ ->
       available?.let {
-        val chooser = SimpleForceChooser(
-          criteria = MaxPV(maxPv),
-          comparator = MaximizePV()
-        )
-        chooseMechs(it, chooser)
+        ForceChooser(
+          requirement = MaxPV(maxPv),
+          comparator = MaximizePV(),
+          presortMode = PresortMode.Random
+        ).chooseMechs(it)
       }
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
@@ -45,6 +48,10 @@ class MainActivityViewModel: ViewModel() {
         }
       }.flatten()
   }
+
+  fun onRandomizeTap() {
+    randomizeCount.update { it + 1 }
+  }
 }
 
 data class MechInfo(
@@ -55,8 +62,28 @@ data class MechInfo(
 
 interface ForceComparator: Comparator<List<MechInfo>>
 
+sealed interface ForceRequirementMatch {
+  /**
+   * The force in question fully matches the requirement
+   */
+  data object Full: ForceRequirementMatch
+  /**
+   * The force in question only partially matches the requirement, but is not forbidden
+   */
+  data class Partial(val matchPercentage: Double): ForceRequirementMatch
+  /**
+   * The force in question is forbidden by the requirement
+   */
+  data object Forbidden: ForceRequirementMatch
+}
+
 interface ForceRequirement {
-  fun meetsRequirement(force: List<MechInfo>): Boolean
+  fun checkForce(force: List<MechInfo>): ForceRequirementMatch
+}
+
+class NoRequriment: ForceRequirement {
+  override fun checkForce(force: List<MechInfo>): ForceRequirementMatch =
+    ForceRequirementMatch.Full
 }
 
 private val List<MechInfo>.pvSum: Int
@@ -68,41 +95,64 @@ class MaximizePV: ForceComparator {
 }
 
 class MaxPV(val maxPv: Int): ForceRequirement {
-  override fun meetsRequirement(force: List<MechInfo>): Boolean = force.pvSum <= maxPv
+  override fun checkForce(force: List<MechInfo>): ForceRequirementMatch =
+    if (force.pvSum <= maxPv) ForceRequirementMatch.Full else ForceRequirementMatch.Forbidden
 }
 
-class SimpleForceChooser(
-  val criteria: ForceRequirement,
-  val comparator: ForceComparator
-): ForceRequirement by criteria, ForceComparator by comparator
+enum class PresortMode {
+  /**
+   * Uses input ordering
+   */
+  None,
+  /**
+   * Shuffles input
+   */
+  Random,
+  /**
+   * Sorts input by comparator in descending comparator value order
+   */
+  BestFirst,
+  /**
+   * Sorts input by comparator in ascending comparator value order
+   */
+  WorstFirst
+}
 
-private fun <T> chooseMechs(
-  mechs: List<MechInfo>,
-  chooser: T
-): List<MechInfo> where T: ForceComparator, T: ForceRequirement {
-  // Maximize PV under the maximum
-  var current = emptyList<MechInfo>()
-  // Sort available by chooser to approximate best first
-  var available = mechs
-    .map { listOf(it) }
-    .sortedWith(chooser)
-    .reversed()
-    .map { it.first() }
-
-  // First, fill up the list with the highest value options
-  while (true) {
-    val next = available.firstOrNull {
-      chooser.meetsRequirement(current + it)
+data class ForceChooser(
+  val requirement: ForceRequirement,
+  val comparator: ForceComparator,
+  val presortMode: PresortMode = PresortMode.None,
+) {
+  fun chooseMechs(mechs: List<MechInfo>): List<MechInfo> {
+    // Maximize PV under the maximum
+    var current = emptyList<MechInfo>()
+    var available = when (presortMode) {
+      PresortMode.None -> mechs
+      PresortMode.Random -> mechs.shuffled()
+      PresortMode.BestFirst -> sortByComparator(mechs).reversed()
+      PresortMode.WorstFirst -> sortByComparator(mechs)
     }
-    println("next: $next")
-    next?.also {
-      current = current + it
-      available = available - it
-    } ?: break
+
+    // First, fill up the list with the highest value options
+    while (true) {
+      val next = available.firstOrNull {
+        requirement.checkForce(current + it) != ForceRequirementMatch.Forbidden
+      }
+      next?.also {
+        current = current + it
+        available = available - it
+      } ?: break
+    }
+
+    // TODO: Swap subsections to maximize value
+
+    return current
   }
 
-  // TODO: Swap subsections to maximize value
-
-  return current
+  private fun sortByComparator(mechs: List<MechInfo>): List<MechInfo> =
+    mechs
+      .map { listOf(it) }
+      .sortedWith(comparator)
+      .map { it.first() }
 }
 
