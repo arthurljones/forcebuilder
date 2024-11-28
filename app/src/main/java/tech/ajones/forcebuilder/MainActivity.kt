@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.compose.AppTheme
 import kotlinx.coroutines.flow.update
 import kotlin.math.roundToInt
 
@@ -54,7 +55,7 @@ class MainActivity: ComponentActivity() {
     enableEdgeToEdge()
     setContent {
       val snackbarHostState = remember { SnackbarHostState() }
-      MaterialTheme {
+      AppTheme {
         Scaffold(
           snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { padding ->
