@@ -1,52 +1,51 @@
-Name,Variant 1,PV1,Role,,Variant 2,PV2,Role
-Adder,Prime,30,,,A,35,
-Archer,ARC-7C,50,,,ARC-5R,38,
-Arctic Cheetah,Prime,36,,,A,32,
-Atlas,AS7-S4,55,,,AS7-S,52,
-Battle Cobra,Prime,31,,,A,33,
-Black Knight,BL-6-KNT,39,,,BL-9-KNT,37,
-Black Lanner,Prime,47,,,A,50,
-Blackjack,BJ-3,30,,,BJ-5,27,
-Cataphract,CTF-5L,40,,,CTF-3LL,34,
-Centurian,CN9-A,28,,,CN9-AL,28,
-Conjurer,Standard,35,,,3,35,
-Crossbow,Prime,46,,,A,45,
-Dragon,DRG-1N,32,,,DRG-5N,32,
-Ebon Jaguar,Prime,41,,,A,41,
-Elementals,Laser sqd5,19,,,HMG sqd5,19,
-Elementals,Laser sqd5,19,,,HMG sqd5,19,
-Executioner,Prime,51,,,A,57,
-Fire Falcon,Prime,40,,,A,27,
-Fire Moth,D,30,,,G,35,
-Lao Hu,LHU-3C,43,,,LHU-3L,44,
-Hellion,Prime,43,,,A,39,
-Horned Owl,Standard,28,,,2,26,
-Howler,Standard,20,,,"3 ""Devil""",24,
-Hunchback IIC,Standard,26,,,2,29,
-Huntsman,Prime,42,,,A,37,
-Incubus,Standard,38,,,2,38,
-Kingfisher,Prime,54,,,A,49,
-Kodiak,Standard,53,,,2,50,
-Linebacker,Prime,44,,,A,44,
-Locust,LCT-7V,25,,,LCT-3M,20,
-Marauder IIC,Standard,51,,,8,53,
-Mongrel,Prime,46,,,A,46,
-Night Gyr,Prime,47,,,A,45,
-Nova,Prime,41,,,T,42,
-Nova,A,35,,,,,
-Pack Hunter,Standard,27,,,2,33,
-Phoenix Hawk,PXH-4M,31,,,PXH-3K,32,
-Piranha,Standard,25,,,2,24,
-Pouncer,Prime,31,,,T,29,
-Rifleman,C,26,,,RFL-8D,35,
-Stone Rhino,Standard,56,,,4,44,
-Supernova,Standard,50,,,2,57,
-Timber Wolf,Prime,54,,,A,59,
-Timber Wolf,T,63,,,Prime,54,
-Turkina,Prime,56,,,A,56,
-Vapor Eagle,Standard,41,,,2,40,
-Warhammer,WHM-6R,32,,,WHR-8R,40,
-Warhammer IIC,Standard,50,,,2,52,
-Warhawk,C,53,,,T,50,
-Wasp,WSP-3W,10,,,WSP-5A,17,
-Wraith,TR1,41,,,TR5,42,
+Adder
+Archer
+Arctic Cheetah
+Atlas
+Battle Cobra
+Black Knight
+Black Lanner
+Blackjack
+Cataphract
+Centurion
+Conjurer
+Crossbow
+Dragon
+Ebon Jaguar
+Elemental Battle Armor
+Elemental Battle Armor
+Executioner
+Fire Falcon
+Fire Moth
+Lao Hu
+Hellion
+Horned Owl
+Howler
+Hunchback IIC
+Huntsman
+Incubus
+Kingfisher
+Kodiak
+Linebacker
+Locust
+Marauder IIC
+Mongrel
+Night Gyr
+Nova
+Nova
+Pack Hunter
+Phoenix Hawk
+Piranha
+Pouncer
+Rifleman
+Stone Rhino
+Supernova
+Timber Wolf
+Timber Wolf
+Turkina
+Vapor Eagle
+Warhammer
+Warhammer IIC
+Warhawk
+Wasp
+Wraith

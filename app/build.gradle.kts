@@ -1,6 +1,7 @@
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
+  alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.compose.compiler)
 }
 
@@ -44,6 +45,7 @@ dependencies {
   implementation(libs.material)
   implementation(libs.androidx.activity)
   implementation(libs.androidx.constraintlayout)
+  implementation(libs.androidx.ui.text.google.fonts)
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
@@ -77,5 +79,5 @@ dependencies {
   implementation(libs.androidx.runtime.livedata)
 
   implementation(libs.kotlin.csv.jvm)
-
+  implementation(libs.kotlinx.serialization.json)
 }

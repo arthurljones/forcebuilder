@@ -48,7 +48,11 @@ class MainActivity: ComponentActivity() {
   private val model: MainActivityViewModel by viewModels()
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    model.setupFromCsvAsset(context = this, assetPath = "inventory-tomas.csv")
+    model.setupFromCsvAsset(
+      context = this,
+      minisPath = "inventory-tomas.csv",
+      allUnitsPath = "all-meks.json"
+    )
 
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
@@ -110,13 +114,13 @@ class MainActivity: ComponentActivity() {
     Text("Force", style = MaterialTheme.typography.titleLarge)
 
     val locked by model.lockedUnits.collectAsStateWithLifecycle()
-    val results by model.result.collectAsStateWithLifecycle()
-    results?.also { units ->
+    val chosenVariants by model.chosen.collectAsStateWithLifecycle()
+    chosenVariants?.also { chosen ->
       val statsStyle = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold)
-      Text("Count: ${units.size}", style = statsStyle)
-      Text("PV: ${units.sumOf { it.pointsValue }}", style = statsStyle)
+      Text("Count: ${chosen.size}", style = statsStyle)
+      Text("PV: ${chosen.sumOf { it.unit.pointsValue }}", style = statsStyle)
       Spacer(modifier = Modifier.height(8.dp))
-      units.forEach { unit ->
+      chosen.forEach { unit ->
         Row(modifier = Modifier.height(32.dp)
           .clickable {
             model.lockedUnits.update { if (it.contains(unit)) it - unit else it + unit }
@@ -144,10 +148,10 @@ class MainActivity: ComponentActivity() {
     Row(
       horizontalArrangement = Arrangement.spacedBy(8.dp)
     ){
-      val text = results?.joinToString("\n") ?: ""
+      val text = chosenVariants?.joinToString("\n") ?: ""
       val clipboard = LocalClipboardManager.current
       Button(
-        enabled = results?.isNotEmpty() == true,
+        enabled = chosenVariants?.isNotEmpty() == true,
         onClick = { clipboard.setText(AnnotatedString(text)) }
       ) {
         Text("Copy To Clipboard")
