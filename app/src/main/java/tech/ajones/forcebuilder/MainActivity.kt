@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
 import com.example.compose.AppTheme
 import kotlinx.coroutines.flow.update
 import kotlin.math.roundToInt
@@ -122,21 +127,39 @@ class MainActivity: ComponentActivity() {
       Text("PV: ${chosen.sumOf { it.unit.pointsValue }}", style = statsStyle)
       Spacer(modifier = Modifier.height(8.dp))
       chosen.forEach { unit ->
-        Row(modifier = Modifier.height(32.dp)
-          .clickable {
-            model.lockedUnits.update { if (it.contains(unit)) it - unit else it + unit }
-          }
-        ) {
-          Checkbox(
-            checked = locked.contains(unit),
-            onCheckedChange = { checked ->
-              model.lockedUnits.update { if (checked) it + unit else it - unit }
+        Column {
+          Row(modifier = Modifier.height(32.dp)
+            .clickable {
+              model.lockedUnits.update { if (it.contains(unit)) it - unit else it + unit }
             }
+          ) {
+            Checkbox(
+              checked = locked.contains(unit),
+              onCheckedChange = { checked ->
+                model.lockedUnits.update { if (checked) it + unit else it - unit }
+              }
+            )
+            Text(
+              text = unit.toString(),
+              modifier = Modifier.align(Alignment.CenterVertically)
+            )
+          }
+        }
+        unit.unit.mulId?.also {
+          val painter = rememberAsyncImagePainter(
+            model = "http://masterunitlist.info/Unit/Card/$it?skill=4"
           )
-          Text(
-            text = unit.toString(),
-            modifier = Modifier.align(Alignment.CenterVertically)
+          Image(
+            painter = painter,
+            contentDescription = "Alpha Strike Card"
           )
+          val state = painter.state.collectAsStateWithLifecycle().value
+          when (state) {
+            is AsyncImagePainter.State.Error -> {
+              println("error loading ${it}: ${state.result}")
+            }
+            else -> { }
+          }
         }
       }
     } ?: run {
