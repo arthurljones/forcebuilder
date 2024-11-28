@@ -138,6 +138,22 @@ class MainActivity: ComponentActivity() {
             modifier = Modifier.align(Alignment.CenterVertically)
           )
         }
+        unit.unit.mulId?.also {
+          val painter = rememberAsyncImagePainter(
+            model = "http://masterunitlist.info/Unit/Card/$it?skill=4"
+          )
+          Image(
+            painter = painter,
+            contentDescription = "Alpha Strike Card"
+          )
+          val state = painter.state.collectAsStateWithLifecycle().value
+          when (state) {
+            is AsyncImagePainter.State.Error -> {
+              Text("error loading $it: ${state.result.throwable.message}")
+            }
+            else -> { }
+          }
+        }
       }
     } ?: run {
       Text("No results")
