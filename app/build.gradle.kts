@@ -1,6 +1,7 @@
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
+  alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.compose.compiler)
 }
 
@@ -78,5 +79,5 @@ dependencies {
   implementation(libs.androidx.runtime.livedata)
 
   implementation(libs.kotlin.csv.jvm)
-
+  implementation(libs.kotlinx.serialization.json)
 }

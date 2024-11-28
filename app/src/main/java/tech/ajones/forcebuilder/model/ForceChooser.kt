@@ -1,5 +1,5 @@
 package tech.ajones.forcebuilder.model
-interface ForceComparator: Comparator<List<UnitInfo>>
+interface ForceComparator: Comparator<List<ChosenVariant>>
 
 sealed interface ForceRequirementMatch {
   /**
@@ -17,69 +17,48 @@ sealed interface ForceRequirementMatch {
 }
 
 interface ForceRequirement {
-  fun checkForce(force: List<UnitInfo>): ForceRequirementMatch
+  fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch
 }
 
 class NoRequirement: ForceRequirement {
-  override fun checkForce(force: List<UnitInfo>): ForceRequirementMatch =
+  override fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch =
     ForceRequirementMatch.Full
 }
 
-private val List<UnitInfo>.pvSum: Int
-  get() = sumOf { it.pointsValue }
+private val List<ChosenVariant>.pvSum: Int
+  get() = sumOf { it.unit.pointsValue }
 
 class MaximizePV: ForceComparator {
-  override fun compare(p0: List<UnitInfo>?, p1: List<UnitInfo>?): Int =
+  override fun compare(p0: List<ChosenVariant>?, p1: List<ChosenVariant>?): Int =
     compareValues(p0?.pvSum, p1?.pvSum)
 }
 
 class MaxPV(val maxPv: Int): ForceRequirement {
-  override fun checkForce(force: List<UnitInfo>): ForceRequirementMatch =
+  override fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch =
     if (force.pvSum <= maxPv) ForceRequirementMatch.Full else ForceRequirementMatch.Forbidden
-}
-
-enum class PresortMode {
-  /**
-   * Uses input ordering
-   */
-  None,
-  /**
-   * Shuffles input
-   */
-  Random,
-  /**
-   * Sorts input by comparator in descending comparator value order
-   */
-  BestFirst,
-  /**
-   * Sorts input by comparator in ascending comparator value order
-   */
-  WorstFirst
 }
 
 data class ForceChooser(
   val requirement: ForceRequirement,
   val comparator: ForceComparator,
-  val presortMode: PresortMode = PresortMode.None,
 ) {
-  fun chooseUnits(units: List<UnitInfo>, forced: Set<UnitInfo>): List<UnitInfo> {
-    var current = forced.toList()
-    val starting = units - forced
-    var available = when (presortMode) {
-      PresortMode.None -> starting
-      PresortMode.Random -> starting.shuffled()
-      PresortMode.BestFirst -> sortByComparator(starting).reversed()
-      PresortMode.WorstFirst -> sortByComparator(starting)
-    }
+  fun chooseUnits(minis: List<Mini>, locked: Set<ChosenVariant>): List<ChosenVariant> {
+    var current = locked.toList()
+    val lockedMinis = locked.map { it.mini }.toSet()
+    var available = (minis - lockedMinis).shuffled()
 
     // First, fill up the list with the highest value options
     while (true) {
-      val next = available.firstOrNull {
-        requirement.checkForce(current + it) != ForceRequirementMatch.Forbidden
+      val next = available.firstNotNullOfOrNull { mini ->
+        mini.possibleUnits.shuffled().firstNotNullOfOrNull { unit ->
+          ChosenVariant(mini = mini, unit = unit).takeIf {
+            requirement.checkForce(current + it) != ForceRequirementMatch.Forbidden
+          }
+        }
       }
       next?.also {
         current = current + it
-        available = available - it
+        available = available - it.mini
       } ?: break
     }
 
@@ -87,11 +66,5 @@ data class ForceChooser(
 
     return current
   }
-
-  private fun sortByComparator(units: List<UnitInfo>): List<UnitInfo> =
-    units
-      .map { listOf(it) }
-      .sortedWith(comparator)
-      .map { it.first() }
 }
 
