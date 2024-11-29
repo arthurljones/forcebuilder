@@ -1,6 +1,8 @@
 package tech.ajones.forcebuilder.ui.composable
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,7 +14,7 @@ import coil3.compose.rememberAsyncImagePainter
 import tech.ajones.forcebuilder.R
 
 @Composable
-fun ASCard(
+fun UnitCard(
   mulId: Int,
   skill: Int = 4,
   modifier: Modifier = Modifier
@@ -46,6 +48,6 @@ fun ASCard(
 private fun ASCardPreview() {
   PreviewContainer {
     // Atlas AS7-D
-    ASCard(140)
+    UnitCard(140)
   }
 }

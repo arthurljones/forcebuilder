@@ -42,7 +42,7 @@ fun UnitRow(
         Text(text = unit.toString())
         unit.unit.also { variant ->
           variant.mulId?.takeIf { showCards }?.also {
-            ASCard(it)
+            UnitCard(it)
           } ?: run {
             Row(
               horizontalArrangement = Arrangement.spacedBy(4.dp)

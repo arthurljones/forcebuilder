@@ -2,6 +2,7 @@ package tech.ajones.forcebuilder.ui.composable
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -50,7 +51,7 @@ fun ForceScreen(
 @Preview(device = Devices.PIXEL_7)
 @Composable
 private fun ForceScreenPreview() {
-  PreviewContainer {
+  PreviewContainer(modifier = Modifier.fillMaxSize()) {
     Box(modifier = Modifier
       .padding(16.dp)
       .verticalScroll(rememberScrollState())

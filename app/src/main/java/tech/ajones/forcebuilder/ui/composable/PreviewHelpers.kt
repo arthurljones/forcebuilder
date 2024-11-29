@@ -21,7 +21,6 @@ fun PreviewContainer(
     Box(
       modifier = Modifier
         .background(MaterialTheme.colorScheme.surface)
-        .fillMaxSize()
         .then(modifier)
     ) {
       content()
