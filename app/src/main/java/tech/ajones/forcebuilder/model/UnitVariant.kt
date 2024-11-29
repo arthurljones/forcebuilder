@@ -104,6 +104,18 @@ data class UnitVariant(
   @SerialName("support")
   val isSupport: Boolean = false,
 
+  /**
+   * Whether this is a support (as opposed to combat) unit
+   */
+  @SerialName("year")
+  val yearIntroduced: Int = 0,
+
+  /**
+   * What combat role this unit performs
+   */
+  @SerialName("role")
+  val role: String = "Undetermined"
+
   // Unused data for now
   //  "year"
   //  "advTechYear",
@@ -129,4 +141,11 @@ data class UnitVariant(
    * The chassis of this variant according to its tech base
    */
   val preferredChassis: String = clanChassis.takeIf { isClan && it.isNotBlank() } ?: chassis
+
+  val damageString: String
+    get() = "${damage.short}/${damage.medium}/${damage.long}/${damage.extreme}"
+
+  val armorStructureString: String
+    get() = "$armor/$structure"
+
 }
