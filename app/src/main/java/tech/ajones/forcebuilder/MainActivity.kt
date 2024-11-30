@@ -23,9 +23,8 @@ class MainActivity: ComponentActivity() {
   private val model: MainActivityViewModel by viewModels()
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    model.setupFromCsvAsset(
+    model.setup(
       context = this,
-      minisPath = "inventory-tomas.csv",
       allUnitsPath = "all-meks.json"
     )
 
@@ -47,6 +46,7 @@ class MainActivity: ComponentActivity() {
               units = model.chosen.collectAsStateWithLifecycle().value,
               maxPvSource = model.maxPointValue,
               lockedUnits = model.lockedUnits,
+              selectedLibrarySource = model.library,
               onRandomizeTap = model::onRandomizeTap,
             )
           }

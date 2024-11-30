@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MultiChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -14,15 +17,29 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
+import tech.ajones.forcebuilder.MainActivityViewModel.MiniLibrary
 import kotlin.math.roundToInt
 
 @Composable
 fun GenerationOptions(
   maxPvSource: MutableStateFlow<Int>,
+  selectedLibrarySource: MutableStateFlow<MiniLibrary>,
   onRandomizeTap: () -> Unit
 ) {
   Column {
     Text("Settings", style = MaterialTheme.typography.titleLarge)
+    MultiChoiceSegmentedButtonRow {
+      val selectedLibrary by selectedLibrarySource.collectAsStateWithLifecycle()
+      MiniLibrary.entries.forEachIndexed { index, library ->
+        SegmentedButton(
+          checked = selectedLibrary == library,
+          onCheckedChange = { selectedLibrarySource.value = library },
+          SegmentedButtonDefaults.itemShape(index = index, count = MiniLibrary.entries.size),
+        ) {
+          Text(text = library.name)
+        }
+      }
+    }
     val maxPv by maxPvSource.collectAsStateWithLifecycle()
     val max = 800
     val step = 10
@@ -62,6 +79,7 @@ private fun GenerationOptionsPreview() {
   PreviewContainer {
     GenerationOptions(
       maxPvSource = MutableStateFlow(300),
+      selectedLibrarySource = MutableStateFlow(MiniLibrary.Tomas),
       onRandomizeTap = { }
     )
   }

@@ -15,18 +15,22 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.MutableStateFlow
+import tech.ajones.forcebuilder.MainActivityViewModel
+import tech.ajones.forcebuilder.MainActivityViewModel.MiniLibrary
 import tech.ajones.forcebuilder.model.ChosenVariant
 
 @Composable
 fun ForceScreen(
   units: List<ChosenVariant>?,
   maxPvSource: MutableStateFlow<Int>,
+  selectedLibrarySource: MutableStateFlow<MiniLibrary>,
   lockedUnits: MutableStateFlow<Set<ChosenVariant>>,
   onRandomizeTap: () -> Unit
 ) {
   Column {
     GenerationOptions(
       maxPvSource = maxPvSource,
+      selectedLibrarySource = selectedLibrarySource,
       onRandomizeTap = onRandomizeTap
     )
 
@@ -60,6 +64,7 @@ private fun ForceScreenPreview() {
         units = previewUnits,
         lockedUnits = MutableStateFlow(emptySet()),
         maxPvSource = MutableStateFlow(300),
+        selectedLibrarySource = MutableStateFlow(MiniLibrary.Tomas),
         onRandomizeTap = { }
       )
     }

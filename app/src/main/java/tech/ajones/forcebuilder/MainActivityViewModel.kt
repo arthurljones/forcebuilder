@@ -4,9 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +12,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.Json
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceChooser
@@ -22,14 +19,31 @@ import tech.ajones.forcebuilder.model.MaxPV
 import tech.ajones.forcebuilder.model.MaximizePV
 import tech.ajones.forcebuilder.model.Mini
 import tech.ajones.forcebuilder.model.UnitVariant
+import tech.ajones.forcebuilder.model.ajMiniNames
+import tech.ajones.forcebuilder.model.tomasMiniNames
 
 class MainActivityViewModel: ViewModel() {
-  data class AvailableInfo(
-    val allUnitsByChassis: Map<String, List<UnitVariant>>,
-    val availableMinis: List<Mini>,
-  )
+  private val ajMinis: MutableStateFlow<List<Mini>?> = MutableStateFlow(null)
+  private val tomasMinis: MutableStateFlow<List<Mini>?> = MutableStateFlow(null)
 
-  private val availableInfo: MutableStateFlow<AvailableInfo?> = MutableStateFlow(null)
+  enum class MiniLibrary {
+    AJ, Tomas, Both
+  }
+
+  val library: MutableStateFlow<MiniLibrary> = MutableStateFlow(MiniLibrary.Tomas)
+
+  val allUnitsByChassis: MutableStateFlow<Map<String, List<UnitVariant>>?> =
+    MutableStateFlow(null)
+
+  private val availableMinis: StateFlow<List<Mini>?> =
+    combine(ajMinis, tomasMinis, library) { aj, tomas, lib ->
+      when (lib) {
+        MiniLibrary.AJ -> aj
+        MiniLibrary.Tomas -> tomas
+        MiniLibrary.Both -> (aj ?: emptyList()) + (tomas ?: emptyList())
+      }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
   val maxPointValue: MutableStateFlow<Int> = MutableStateFlow(300)
   private val randomizeCount: MutableStateFlow<Int> = MutableStateFlow(0)
 
@@ -41,7 +55,7 @@ class MainActivityViewModel: ViewModel() {
 
   val chosen: StateFlow<List<ChosenVariant>?> =
     combine(
-      availableInfo,
+      availableMinis,
       maxPointValue,
       randomizeCount
     ) { available, maxPv, _ ->
@@ -51,49 +65,26 @@ class MainActivityViewModel: ViewModel() {
           comparator = MaximizePV(),
           // We don't include `lockedUnits` in the `combine` call above because
           // we don't want to regenerate when it changes.
-        ).chooseUnits(minis = it.availableMinis, locked = lockedUnits.value)
+        ).chooseUnits(minis = it, locked = lockedUnits.value)
       }
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-  fun setupFromCsvAsset(context: Context, minisPath: String, allUnitsPath: String) {
+  fun setup(context: Context, allUnitsPath: String) {
     viewModelScope.launch(Dispatchers.IO) {
-      supervisorScope {
-        val deferredMinis = async {
-          context.assets.open(minisPath)
-            .bufferedReader()
-            .use { it.readLines() }
-            .drop(1)
-            .groupingBy { it }
-            .eachCount()
-        }
+      val raw = context.assets.open(allUnitsPath).bufferedReader().use { it.readText() }
+      val units = json.decodeFromString<List<UnitVariant>>(raw)
+        .groupBy { it.preferredChassis }
+        .also { allUnitsByChassis.value = it }
 
-        val deferredUnits = async {
-          val raw = context.assets.open(allUnitsPath).bufferedReader().use { it.readText() }
-          val units = json.decodeFromString<List<UnitVariant>>(raw)
-          units.groupBy { it.preferredChassis }
-        }
+      tomasMinis.value = loadBakedLibrary(
+        miniNames = tomasMiniNames,
+        units = units
+      )
 
-        val rawMinis = deferredMinis.await()
-        val units = deferredUnits.await()
-
-        val minis = rawMinis.map { (chassis, count) ->
-          val chassisUnits = units[chassis]
-            ?: run {
-              Log.w("", "no units found for mini chassis '$chassis'")
-              emptyList()
-            }
-          Mini(
-            chassis = chassis,
-            count = count,
-            possibleUnits = chassisUnits
-          )
-        }
-
-        availableInfo.value = AvailableInfo(
-          allUnitsByChassis = units,
-          availableMinis = minis
-        )
-      }
+      ajMinis.value = loadBakedLibrary(
+        miniNames = ajMiniNames,
+        units = units
+      )
     }
   }
 
@@ -104,6 +95,28 @@ class MainActivityViewModel: ViewModel() {
   companion object {
     // TODO: Move this someplace better
     private val json = Json { ignoreUnknownKeys = true }
+
+    private fun loadBakedLibrary(
+      miniNames: List<String>,
+      units: Map<String, List<UnitVariant>>
+    ): List <Mini> {
+      val rawMinis = miniNames
+        .groupingBy { it }
+        .eachCount()
+
+      return rawMinis.map { (chassis, count) ->
+        val chassisUnits = units[chassis]
+          ?: run {
+            Log.w("", "no units found for mini chassis '$chassis'")
+            emptyList()
+          }
+        Mini(
+          chassis = chassis,
+          count = count,
+          possibleUnits = chassisUnits
+        )
+      }
+    }
   }
 }
 
