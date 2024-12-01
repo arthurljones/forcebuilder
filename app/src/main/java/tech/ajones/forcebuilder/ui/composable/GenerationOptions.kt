@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.MainActivityViewModel.MiniLibrary
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.model.TechBase
 import kotlin.math.roundToInt
 
 @Composable
@@ -31,13 +32,31 @@ fun GenerationOptions(
     val settings by settingsSource.collectAsStateWithLifecycle()
     Text("Settings", style = MaterialTheme.typography.titleLarge)
     MultiChoiceSegmentedButtonRow {
-      MiniLibrary.entries.forEachIndexed { index, library ->
+      val items = MiniLibrary.entries
+      items.forEachIndexed { index, library ->
         SegmentedButton(
           checked = settings.library == library,
           onCheckedChange = { settingsSource.update { it.copy(library = library) } },
-          SegmentedButtonDefaults.itemShape(index = index, count = MiniLibrary.entries.size),
+          SegmentedButtonDefaults.itemShape(index = index, count = items.size),
         ) {
           Text(text = library.name)
+        }
+      }
+    }
+    MultiChoiceSegmentedButtonRow {
+      val items = TechBase.entries
+      items.forEachIndexed { index, tech ->
+        SegmentedButton(
+          checked = settings.techBase.contains(tech),
+          onCheckedChange = { checked ->
+            settingsSource.update {
+              val newVal = if (checked) it.techBase + tech else it.techBase - tech
+              it.copy(techBase = newVal)
+            }
+          },
+          SegmentedButtonDefaults.itemShape(index = index, count = items.size),
+        ) {
+          Text(text = tech.name)
         }
       }
     }

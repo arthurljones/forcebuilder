@@ -16,6 +16,8 @@ import kotlinx.serialization.json.Json
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceChooser
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.model.MatchesAllRequirements
+import tech.ajones.forcebuilder.model.MatchingTechBase
 import tech.ajones.forcebuilder.model.MaxPV
 import tech.ajones.forcebuilder.model.MaximizePV
 import tech.ajones.forcebuilder.model.Mini
@@ -45,7 +47,6 @@ class MainActivityViewModel: ViewModel() {
       }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-  val maxPointValue: MutableStateFlow<Int> = MutableStateFlow(300)
   private val randomizeCount: MutableStateFlow<Int> = MutableStateFlow(0)
 
   /**
@@ -62,7 +63,10 @@ class MainActivityViewModel: ViewModel() {
     ) { available, settings, _ ->
       available?.let {
         ForceChooser(
-          requirement = MaxPV(settings.maxPointsValue),
+          requirement = MatchesAllRequirements(listOf(
+            MaxPV(settings.maxPointsValue),
+            MatchingTechBase(settings.techBase)
+          )),
           comparator = MaximizePV(),
           // We don't include `lockedUnits` in the `combine` call above because
           // we don't want to regenerate when it changes.

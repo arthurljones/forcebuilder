@@ -1,7 +1,7 @@
 package tech.ajones.forcebuilder.model
 interface ForceComparator: Comparator<List<ChosenVariant>>
 
-sealed interface ForceRequirementMatch {
+sealed interface ForceRequirementMatch: Comparable<ForceRequirementMatch> {
   /**
    * The force in question fully matches the requirement
    */
@@ -14,7 +14,31 @@ sealed interface ForceRequirementMatch {
    * The force in question is forbidden by the requirement
    */
   data object Forbidden: ForceRequirementMatch
+
+  override fun compareTo(other: ForceRequirementMatch): Int =
+    when (this) {
+      Forbidden -> {
+        when(other) {
+          Forbidden -> 0
+          else -> -1
+        }
+      }
+      is Partial -> {
+        when (other) {
+          Forbidden -> 1
+          is Partial -> matchPercentage.compareTo(other.matchPercentage)
+          Full -> -1
+        }
+      }
+      Full -> {
+        when (other) {
+          Full -> 0
+          else -> 1
+        }
+      }
+    }
 }
+
 
 interface ForceRequirement {
   fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch
@@ -33,9 +57,27 @@ class MaximizePV: ForceComparator {
     compareValues(p0?.pvSum, p1?.pvSum)
 }
 
-class MaxPV(val maxPv: Int): ForceRequirement {
+class MaxPV(private val maxPv: Int): ForceRequirement {
   override fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch =
     if (force.pvSum <= maxPv) ForceRequirementMatch.Full else ForceRequirementMatch.Forbidden
+}
+
+class MatchingTechBase(private val techBases: Set<TechBase>): ForceRequirement {
+  override fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch {
+    val clanAllowed = techBases.contains(TechBase.Clan)
+    val isAllowed = techBases.contains(TechBase.IS)
+    val matches = force.all { if (it.unit.isClan) clanAllowed else isAllowed }
+    return if (matches) ForceRequirementMatch.Full else ForceRequirementMatch.Forbidden
+  }
+}
+
+class MatchesAllRequirements(private val requirements: List<ForceRequirement>):ForceRequirement {
+  override fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch =
+    if (force.isEmpty()) {
+      ForceRequirementMatch.Full
+    } else {
+      requirements.minOf { it.checkForce(force) }
+    }
 }
 
 data class ForceChooser(
