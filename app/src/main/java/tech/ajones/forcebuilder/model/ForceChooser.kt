@@ -62,6 +62,18 @@ class MaxPV(private val maxPv: Int): ForceRequirement {
     if (force.pvSum <= maxPv) ForceRequirementMatch.Full else ForceRequirementMatch.Forbidden
 }
 
+class UnitCountRange(private val minUnits: Int?, private val maxUnits: Int?): ForceRequirement {
+  override fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch {
+    val forceSize = force.size
+    return when {
+      maxUnits != null && forceSize > maxUnits -> ForceRequirementMatch.Forbidden
+      minUnits != null && forceSize < minUnits ->
+        ForceRequirementMatch.Partial(forceSize.toDouble() / minUnits)
+      else -> ForceRequirementMatch.Full
+    }
+  }
+}
+
 class MatchingTechBase(private val techBases: Set<TechBase>): ForceRequirement {
   override fun checkForce(force: List<ChosenVariant>): ForceRequirementMatch {
     val clanAllowed = techBases.contains(TechBase.Clan)

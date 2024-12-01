@@ -21,6 +21,7 @@ import tech.ajones.forcebuilder.model.MatchingTechBase
 import tech.ajones.forcebuilder.model.MaxPV
 import tech.ajones.forcebuilder.model.MaximizePV
 import tech.ajones.forcebuilder.model.Mini
+import tech.ajones.forcebuilder.model.UnitCountRange
 import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.model.ajMiniNames
 import tech.ajones.forcebuilder.model.tomasMiniNames
@@ -61,16 +62,19 @@ class MainActivityViewModel: ViewModel() {
       forceSettings,
       randomizeCount
     ) { available, settings, _ ->
-      available?.let {
+      available?.let { minis ->
         ForceChooser(
-          requirement = MatchesAllRequirements(listOf(
-            MaxPV(settings.maxPointsValue),
-            MatchingTechBase(settings.techBase)
-          )),
+          requirement = MatchesAllRequirements(
+            listOf(
+              MaxPV(settings.maxPointsValue),
+              MatchingTechBase(settings.techBase),
+              UnitCountRange(minUnits = settings.minUnits, maxUnits = settings.maxUnits),
+            )
+          ),
           comparator = MaximizePV(),
           // We don't include `lockedUnits` in the `combine` call above because
           // we don't want to regenerate when it changes.
-        ).chooseUnits(minis = it, locked = lockedUnits.value)
+        ).chooseUnits(minis = minis, locked = lockedUnits.value)
       }
     }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 

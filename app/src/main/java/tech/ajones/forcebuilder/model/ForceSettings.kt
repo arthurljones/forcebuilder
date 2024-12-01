@@ -7,7 +7,9 @@ enum class TechBase {
 }
 
 data class ForceSettings(
-  val maxPointsValue: Int = 300,
   val library: MainActivityViewModel.MiniLibrary = MainActivityViewModel.MiniLibrary.Tomas,
-  val techBase: Set<TechBase> = TechBase.entries.toSet()
+  val techBase: Set<TechBase> = TechBase.entries.toSet(),
+  val maxPointsValue: Int = 300,
+  val maxUnits: Int? = null,
+  val minUnits: Int? = null,
 )
