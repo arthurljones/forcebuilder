@@ -17,48 +17,53 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.MainActivityViewModel.MiniLibrary
+import tech.ajones.forcebuilder.model.ForceSettings
 import kotlin.math.roundToInt
 
 @Composable
 fun GenerationOptions(
-  maxPvSource: MutableStateFlow<Int>,
-  selectedLibrarySource: MutableStateFlow<MiniLibrary>,
+  settingsSource: MutableStateFlow<ForceSettings>,
   onRandomizeTap: () -> Unit
 ) {
   Column {
+    val settings by settingsSource.collectAsStateWithLifecycle()
     Text("Settings", style = MaterialTheme.typography.titleLarge)
     MultiChoiceSegmentedButtonRow {
-      val selectedLibrary by selectedLibrarySource.collectAsStateWithLifecycle()
       MiniLibrary.entries.forEachIndexed { index, library ->
         SegmentedButton(
-          checked = selectedLibrary == library,
-          onCheckedChange = { selectedLibrarySource.value = library },
+          checked = settings.library == library,
+          onCheckedChange = { settingsSource.update { it.copy(library = library) } },
           SegmentedButtonDefaults.itemShape(index = index, count = MiniLibrary.entries.size),
         ) {
           Text(text = library.name)
         }
       }
     }
-    val maxPv by maxPvSource.collectAsStateWithLifecycle()
     val max = 800
     val step = 10
     Slider(
-      value = maxPv.toFloat(),
-      onValueChange = { maxPvSource.value = it.roundToInt() },
+      value = settings.maxPointsValue.toFloat(),
+      onValueChange = { newPointsMax ->
+        settingsSource.update { it.copy(maxPointsValue = newPointsMax.roundToInt()) }
+      },
       steps = max / step - 1,
       valueRange = 0f..max.toFloat()
     )
     val pattern = remember { Regex("""^(?:\d+)?$""") }
     TextField(
-      value = maxPv.toString(),
+      value = settings.maxPointsValue.toString(),
       label = { Text("Max PV") },
-      onValueChange = {
-        if (it.matches(pattern)) {
-          maxPvSource.value = try {
-            it.toInt()
+      onValueChange = { value ->
+        if (value.matches(pattern)) {
+          val newPointsMax = try {
+            value.toInt()
           } catch (ex: NumberFormatException) {
             0
+          }
+          settingsSource.update {
+            it.copy(maxPointsValue = newPointsMax)
           }
         }
       },
@@ -78,8 +83,7 @@ fun GenerationOptions(
 private fun GenerationOptionsPreview() {
   PreviewContainer {
     GenerationOptions(
-      maxPvSource = MutableStateFlow(300),
-      selectedLibrarySource = MutableStateFlow(MiniLibrary.Tomas),
+      settingsSource = MutableStateFlow(ForceSettings()),
       onRandomizeTap = { }
     )
   }

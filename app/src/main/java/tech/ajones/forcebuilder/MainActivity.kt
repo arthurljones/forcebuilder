@@ -44,9 +44,8 @@ class MainActivity: ComponentActivity() {
           ) {
             ForceScreen(
               units = model.chosen.collectAsStateWithLifecycle().value,
-              maxPvSource = model.maxPointValue,
+              settingSource = model.forceSettings,
               lockedUnits = model.lockedUnits,
-              selectedLibrarySource = model.library,
               onRandomizeTap = model::onRandomizeTap,
             )
           }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceChooser
+import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.MaxPV
 import tech.ajones.forcebuilder.model.MaximizePV
 import tech.ajones.forcebuilder.model.Mini
@@ -30,14 +31,14 @@ class MainActivityViewModel: ViewModel() {
     AJ, Tomas, Both
   }
 
-  val library: MutableStateFlow<MiniLibrary> = MutableStateFlow(MiniLibrary.Tomas)
+  val forceSettings: MutableStateFlow<ForceSettings> = MutableStateFlow(ForceSettings())
 
   val allUnitsByChassis: MutableStateFlow<Map<String, List<UnitVariant>>?> =
     MutableStateFlow(null)
 
   private val availableMinis: StateFlow<List<Mini>?> =
-    combine(ajMinis, tomasMinis, library) { aj, tomas, lib ->
-      when (lib) {
+    combine(ajMinis, tomasMinis, forceSettings) { aj, tomas, settings ->
+      when (settings.library) {
         MiniLibrary.AJ -> aj
         MiniLibrary.Tomas -> tomas
         MiniLibrary.Both -> (aj ?: emptyList()) + (tomas ?: emptyList())
@@ -56,12 +57,12 @@ class MainActivityViewModel: ViewModel() {
   val chosen: StateFlow<List<ChosenVariant>?> =
     combine(
       availableMinis,
-      maxPointValue,
+      forceSettings,
       randomizeCount
-    ) { available, maxPv, _ ->
+    ) { available, settings, _ ->
       available?.let {
         ForceChooser(
-          requirement = MaxPV(maxPv),
+          requirement = MaxPV(settings.maxPointsValue),
           comparator = MaximizePV(),
           // We don't include `lockedUnits` in the `combine` call above because
           // we don't want to regenerate when it changes.
