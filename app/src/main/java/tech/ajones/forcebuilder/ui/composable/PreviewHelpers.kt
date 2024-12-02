@@ -2,7 +2,6 @@ package tech.ajones.forcebuilder.ui.composable
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,7 +30,7 @@ fun PreviewContainer(
 val previewUnits: List<ChosenVariant> = listOf(
   Mini(
     chassis = "Atlas",
-    count = 1,
+    id = 0,
     possibleUnits = listOf(
       UnitVariant(
         chassis = "Atlas",
@@ -52,7 +51,7 @@ val previewUnits: List<ChosenVariant> = listOf(
       ),
       UnitVariant(
         chassis = "Atlas",
-        variant = "AS7-D",
+        variant = "AS7-Dr",
         isClan = false,
         pointsValue = 55,
         type = "BM",
@@ -71,7 +70,7 @@ val previewUnits: List<ChosenVariant> = listOf(
   ),
   Mini(
     chassis = "Timber Wolf",
-    count = 1,
+    id = 1,
     possibleUnits = listOf(
       UnitVariant(
         chassis = "Mad Cat",
@@ -113,7 +112,7 @@ val previewUnits: List<ChosenVariant> = listOf(
   ),
   Mini(
     chassis = "Marauder",
-    count = 1,
+    id = 2,
     possibleUnits = listOf(
       UnitVariant(
         chassis = "Marauder",

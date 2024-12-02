@@ -9,22 +9,25 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceChooser
+import tech.ajones.forcebuilder.model.ForceScorer
 import tech.ajones.forcebuilder.model.ForceSettings
-import tech.ajones.forcebuilder.model.MatchesAllRequirements
+import tech.ajones.forcebuilder.model.IncludesUnits
 import tech.ajones.forcebuilder.model.MatchingTechBase
-import tech.ajones.forcebuilder.model.MaxPV
-import tech.ajones.forcebuilder.model.MaximizePV
+import tech.ajones.forcebuilder.model.MaximizePointsValue
 import tech.ajones.forcebuilder.model.Mini
+import tech.ajones.forcebuilder.model.PointValueRange
 import tech.ajones.forcebuilder.model.UnitCountRange
 import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.model.ajMiniNames
 import tech.ajones.forcebuilder.model.tomasMiniNames
+import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivityViewModel: ViewModel() {
   private val ajMinis: MutableStateFlow<List<Mini>?> = MutableStateFlow(null)
@@ -56,27 +59,35 @@ class MainActivityViewModel: ViewModel() {
    */
   val lockedUnits: MutableStateFlow<Set<ChosenVariant>> = MutableStateFlow(emptySet())
 
-  val chosen: StateFlow<List<ChosenVariant>?> =
+  val chosen: StateFlow<Set<ChosenVariant>?> =
     combine(
       availableMinis,
       forceSettings,
       randomizeCount
     ) { available, settings, _ ->
+      // We don't include `lockedUnits` in the `combine` call above because
+      // we don't want to regenerate when it changes.
+      // TODO: Only generate random list on button tap
+      val locked = lockedUnits.value.toSet()
       available?.let { minis ->
-        ForceChooser(
-          requirement = MatchesAllRequirements(
-            listOf(
-              MaxPV(settings.maxPointsValue),
-              MatchingTechBase(settings.techBase),
-              UnitCountRange(minUnits = settings.minUnits, maxUnits = settings.maxUnits),
-            )
+        val scorer = ForceScorer(
+          requirements = listOfNotNull(
+            PointValueRange(max = settings.maxPointsValue),
+            MatchingTechBase(settings.techBase),
+            UnitCountRange(min = settings.minUnits, max = settings.maxUnits),
+            locked.takeIf { it.isNotEmpty() }?.let { IncludesUnits(it) }
           ),
-          comparator = MaximizePV(),
-          // We don't include `lockedUnits` in the `combine` call above because
-          // we don't want to regenerate when it changes.
-        ).chooseUnits(minis = minis, locked = lockedUnits.value)
+          priority = MaximizePointsValue()
+        )
+        ForceChooser.chooseUnits(
+          scorer = scorer,
+          allMinis = minis,
+          initial = locked
+        )
       }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, null)
+    }
+      .flowOn(Dispatchers.Default)
+      .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
   fun setup(context: Context, allUnitsPath: String) {
     viewModelScope.launch(Dispatchers.IO) {
@@ -104,16 +115,14 @@ class MainActivityViewModel: ViewModel() {
   companion object {
     // TODO: Move this someplace better
     private val json = Json { ignoreUnknownKeys = true }
+    // TODO: This should be a database row id
+    private val miniIdGenerator = AtomicInteger()
 
     private fun loadBakedLibrary(
       miniNames: List<String>,
       units: Map<String, List<UnitVariant>>
-    ): List <Mini> {
-      val rawMinis = miniNames
-        .groupingBy { it }
-        .eachCount()
-
-      return rawMinis.map { (chassis, count) ->
+    ): List <Mini> =
+      miniNames.map { chassis ->
         val chassisUnits = units[chassis]
           ?: run {
             Log.w("", "no units found for mini chassis '$chassis'")
@@ -121,11 +130,10 @@ class MainActivityViewModel: ViewModel() {
           }
         Mini(
           chassis = chassis,
-          count = count,
-          possibleUnits = chassisUnits
+          possibleUnits = chassisUnits,
+          id = miniIdGenerator.getAndIncrement()
         )
       }
-    }
   }
 }
 

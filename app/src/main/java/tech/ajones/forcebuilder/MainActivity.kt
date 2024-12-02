@@ -43,7 +43,7 @@ class MainActivity: ComponentActivity() {
               .verticalScroll(rememberScrollState())
           ) {
             ForceScreen(
-              units = model.chosen.collectAsStateWithLifecycle().value,
+              units = model.chosen.collectAsStateWithLifecycle().value?.toList(),
               settingSource = model.forceSettings,
               lockedUnits = model.lockedUnits,
               onRandomizeTap = model::onRandomizeTap,

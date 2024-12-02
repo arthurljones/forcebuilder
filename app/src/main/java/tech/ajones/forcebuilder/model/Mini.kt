@@ -1,10 +1,18 @@
 package tech.ajones.forcebuilder.model
 
-data class Mini(
+import java.util.concurrent.atomic.AtomicInteger
+
+class Mini(
   val chassis: String,
-  val count: Int,
-  val possibleUnits: List<UnitVariant>
-)
+  val possibleUnits: List<UnitVariant>,
+  val id: Int
+) {
+  override fun hashCode(): Int = id
+  override fun equals(other: Any?): Boolean =
+    (other as? Mini)?.id == id
+
+  override fun toString(): String = "Mini[$id]: $chassis"
+}
 
 data class ChosenVariant(
   val mini: Mini,
