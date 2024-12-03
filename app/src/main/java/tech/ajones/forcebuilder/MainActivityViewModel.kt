@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.Json
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceChooser
@@ -92,10 +91,9 @@ class MainActivityViewModel: ViewModel() {
       val outerContext = this
       generatedForce.value = CancelableLoading(cancel = { cancel() })
       val progress = MutableStateFlow(0f)
-
-      supervisorScope {
-        val progressJob = launch {
-          progress.collectLatest {
+      val progressJob = launch {
+        progress.collectLatest {
+          if (isActive) {
             generatedForce.value = CancelableLoading(
               progress = it,
               cancel = {
@@ -105,8 +103,13 @@ class MainActivityViewModel: ViewModel() {
             )
           }
         }
+      }
 
-        val minis = availableMinis.value ?: return@supervisorScope
+      val result = runCatching<Set<ChosenVariant>?> {
+        val minis = availableMinis.value ?: run {
+          cancel()
+          return@runCatching null
+        }
         val settings = forceSettings.value
         val locked = lockedUnits.value.toSet()
         val scorer = ForceScorer(
@@ -118,19 +121,21 @@ class MainActivityViewModel: ViewModel() {
           ),
           priority = MaximizePointsValue()
         )
-        ForceChooser.chooseUnits(
+        return@runCatching ForceChooser.chooseUnits(
           scorer = scorer,
           allMinis = minis,
           initial = locked,
           progress = progress
-        ).also {
-          progressJob.cancel()
-          progressJob.join()
-          if (isActive) {
-            generatedForce.value = LoadResult.Success(it)
-          }
-        }
+        )
       }
+      progressJob.cancel()
+      progressJob.join()
+
+      println(result)
+      generatedForce.value = result.fold(
+        onSuccess = { units -> units?.let { LoadResult.Success(it) } },
+        onFailure = { LoadResult.Failure(it.message) }
+      )
     }
   }
 
