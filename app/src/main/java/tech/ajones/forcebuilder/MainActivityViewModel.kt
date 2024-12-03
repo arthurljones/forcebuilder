@@ -26,8 +26,11 @@ import tech.ajones.forcebuilder.model.MaximizePointsValue
 import tech.ajones.forcebuilder.model.Mini
 import tech.ajones.forcebuilder.model.PointValueRange
 import tech.ajones.forcebuilder.model.UnitCountRange
+import tech.ajones.forcebuilder.model.UnitSortField
+import tech.ajones.forcebuilder.model.UnitSortOrder
 import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.model.ajMiniNames
+import tech.ajones.forcebuilder.model.map
 import tech.ajones.forcebuilder.model.tomasMiniNames
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -38,6 +41,9 @@ class MainActivityViewModel: ViewModel() {
   enum class MiniLibrary {
     AJ, Tomas, Both
   }
+
+  val sortOrder: MutableStateFlow<UnitSortOrder<*, *>> =
+    MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true))
 
   val forceSettings: MutableStateFlow<ForceSettings> = MutableStateFlow(ForceSettings())
 
@@ -62,8 +68,13 @@ class MainActivityViewModel: ViewModel() {
   /**
    * The force that has been generated, if any
    */
-  val generatedForce: MutableStateFlow<LoadResult<Set<ChosenVariant>>?> =
+  private val generatedForce: MutableStateFlow<LoadResult<Set<ChosenVariant>>?> =
     MutableStateFlow(null)
+
+  val sortedForce: StateFlow<LoadResult<List<ChosenVariant>>?> =
+    combine(generatedForce, sortOrder) { force, sort ->
+      force?.map { it.sortedWith(sort.comparator) }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
   fun generateRandomForce() {
     // Cancel any ongoing generation

@@ -42,8 +42,9 @@ class MainActivity: ComponentActivity() {
               .verticalScroll(rememberScrollState())
           ) {
             ForceScreen(
-              forceSource = model.generatedForce,
+              forceSource = model.sortedForce,
               settingSource = model.forceSettings,
+              sortSource = model.sortOrder,
               lockedUnits = model.lockedUnits,
               onRandomizeTap = model::generateRandomForce,
             )

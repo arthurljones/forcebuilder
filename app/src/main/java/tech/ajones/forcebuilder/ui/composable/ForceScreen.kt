@@ -19,16 +19,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import tech.ajones.forcebuilder.CancelableLoading
-import tech.ajones.forcebuilder.LoadResult
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.model.LoadResult
+import tech.ajones.forcebuilder.model.UnitSortField
+import tech.ajones.forcebuilder.model.UnitSortOrder
 
 @Composable
 fun ForceScreen(
-  forceSource: StateFlow<LoadResult<Set<ChosenVariant>>?>,
+  forceSource: StateFlow<LoadResult<Collection<ChosenVariant>>?>,
   settingSource: MutableStateFlow<ForceSettings>,
   lockedUnits: MutableStateFlow<Set<ChosenVariant>>,
+  sortSource: MutableStateFlow<UnitSortOrder<*, *>>,
   onRandomizeTap: () -> Unit
 ) {
   Column {
@@ -45,6 +47,7 @@ fun ForceScreen(
       is LoadResult.Success -> {
         UnitList(
           units = result.data,
+          sortSource = sortSource,
           lockedUnits = lockedUnits,
         )
 
@@ -59,7 +62,7 @@ fun ForceScreen(
         } ?: run {
           LinearProgressIndicator()
         }
-        (result as? CancelableLoading)?.also {
+        (result as? LoadResult.CancelableLoading)?.also {
           Button(
             onClick = { result.cancel() }
           ) {
@@ -91,6 +94,7 @@ private fun ForceScreenPreviewBase(
         forceSource = MutableStateFlow(force),
         lockedUnits = MutableStateFlow(lockedUnits),
         settingSource = MutableStateFlow(ForceSettings()),
+        sortSource = MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true)),
         onRandomizeTap = { }
       )
     }
@@ -115,7 +119,7 @@ private fun ForceScreenSuccessLockedPreview() {
 @Preview(device = Devices.PIXEL_7)
 @Composable
 private fun ForceScreenLoadingPreview() {
-  ForceScreenPreviewBase(force = CancelableLoading(
+  ForceScreenPreviewBase(force = LoadResult.CancelableLoading(
     progress = 0.35f,
     cancel = { }
   ))
