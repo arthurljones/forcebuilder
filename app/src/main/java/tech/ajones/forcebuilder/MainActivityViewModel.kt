@@ -9,10 +9,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -91,6 +89,7 @@ class MainActivityViewModel: ViewModel() {
       ?.also { it.cancel() }
 
     viewModelScope.launch(Dispatchers.Default) {
+      val outerContext = this
       generatedForce.value = CancelableLoading(cancel = { cancel() })
       val progress = MutableStateFlow(0f)
 
@@ -99,38 +98,36 @@ class MainActivityViewModel: ViewModel() {
           progress.collectLatest {
             generatedForce.value = CancelableLoading(
               progress = it,
-              cancel = { cancel() }
+              cancel = {
+                outerContext.cancel()
+                generatedForce.value = null
+              }
             )
           }
         }
 
-        val available = availableMinis.value
+        val minis = availableMinis.value ?: return@supervisorScope
         val settings = forceSettings.value
-
-        // We don't include `lockedUnits` in the `combine` call above because
-        // we don't want to regenerate when it changes.
-        // TODO: Only generate random list on button tap
         val locked = lockedUnits.value.toSet()
-        available?.let { minis ->
-          val scorer = ForceScorer(
-            requirements = listOfNotNull(
-              PointValueRange(max = settings.maxPointsValue),
-              MatchingTechBase(settings.techBase),
-              UnitCountRange(min = settings.minUnits, max = settings.maxUnits),
-              locked.takeIf { it.isNotEmpty() }?.let { IncludesUnits(it) }
-            ),
-            priority = MaximizePointsValue()
-          )
-          ForceChooser.chooseUnits(
-            scorer = scorer,
-            allMinis = minis,
-            initial = locked,
-            progress = progress
-          ).also {
-            progressJob.cancel()
-            if (isActive) {
-              generatedForce.value = LoadResult.Success(it)
-            }
+        val scorer = ForceScorer(
+          requirements = listOfNotNull(
+            PointValueRange(max = settings.maxPointsValue),
+            MatchingTechBase(settings.techBase),
+            UnitCountRange(min = settings.minUnits, max = settings.maxUnits),
+            locked.takeIf { it.isNotEmpty() }?.let { IncludesUnits(it) }
+          ),
+          priority = MaximizePointsValue()
+        )
+        ForceChooser.chooseUnits(
+          scorer = scorer,
+          allMinis = minis,
+          initial = locked,
+          progress = progress
+        ).also {
+          progressJob.cancel()
+          progressJob.join()
+          if (isActive) {
+            generatedForce.value = LoadResult.Success(it)
           }
         }
       }

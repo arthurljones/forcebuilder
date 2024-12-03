@@ -203,7 +203,7 @@ object ForceChooser {
       .filter { it.possibleUnits.isNotEmpty() }
       .toSet()
 
-    println("chooseUnits: allMinis: ${allMinis.size} prunedMinis: ${allMinisPruned.size}")
+    //println("chooseUnits: allMinis: ${allMinis.size} prunedMinis: ${allMinisPruned.size}")
 
     while (
       coroutineContext.isActive &&
@@ -211,13 +211,13 @@ object ForceChooser {
     // TODO: Additional/replacement end condition for either score above threshold or
     //  score change less than some amount over last N iterations
     ) {
-      println("iterating. open: ${open.size} visited: ${visited.size} remaining: $iterationsRemaining")
+      //println("iterating. open: ${open.size} visited: ${visited.size} remaining: $iterationsRemaining")
       val force = open.poll() ?: break
-      println("iterating. force: $force")
+      //println("iterating. force: $force")
       val forceMinis = force.units.map { it.mini }.toSet()
       val availableMinis = allMinisPruned - forceMinis
 
-      println("availableMinis: ${availableMinis.size}")
+      //println("availableMinis: ${availableMinis.size}")
 
       // For each unit in the force, generate a new potential force with that unit removed
       val nextRemovedUnits = force.units.toList()
@@ -235,7 +235,7 @@ object ForceChooser {
           }.toSet()
         }
 
-      println("next added permutations: ${nextAddedUnits.size}")
+      //println("next added permutations: ${nextAddedUnits.size}")
 
       sequence {
         yieldAll(nextRemovedUnits)
@@ -243,26 +243,23 @@ object ForceChooser {
       }.mapNotNull { potential ->
         potential
           .takeIf { !visited.contains(it) }
-          ?.let {
-            println("scoring $it")
-            scorer.scoreForce(it)
-          }
+          ?.let { scorer.scoreForce(it) }
       }.sorted()
         .take(20)
         .forEach {
           if (it.score < bestForce.score) {
             bestForce = it
           }
-          println("adding $it to list")
+          //println("adding $it to list")
           visited.add(it.units)
           open.offer(it)
         }
-      println("iterating: best: $bestForce")
+      //println("iterating: best: $bestForce")
       iterationsRemaining--
       progress?.value = (totalIterations - iterationsRemaining).toFloat() / totalIterations
     }
 
-    println("done. best: $bestForce")
+    //println("done. best: $bestForce")
     return bestForce.units
   }
 }

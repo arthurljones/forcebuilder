@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import tech.ajones.forcebuilder.CancelableLoading
 import tech.ajones.forcebuilder.LoadResult
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceSettings
@@ -56,6 +58,13 @@ fun ForceScreen(
           LinearProgressIndicator(progress = { it })
         } ?: run {
           LinearProgressIndicator()
+        }
+        (result as? CancelableLoading)?.also {
+          Button(
+            onClick = { result.cancel() }
+          ) {
+            Text("Cancel")
+          }
         }
       }
       is LoadResult.Failure -> {
@@ -106,7 +115,10 @@ private fun ForceScreenSuccessLockedPreview() {
 @Preview(device = Devices.PIXEL_7)
 @Composable
 private fun ForceScreenLoadingPreview() {
-  ForceScreenPreviewBase(force = LoadResult.Loading(progress = 0.35f))
+  ForceScreenPreviewBase(force = CancelableLoading(
+    progress = 0.35f,
+    cancel = { }
+  ))
 }
 
 @Preview(device = Devices.PIXEL_7)
