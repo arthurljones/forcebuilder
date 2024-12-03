@@ -20,6 +20,7 @@ import tech.ajones.forcebuilder.model.ForceChooser
 import tech.ajones.forcebuilder.model.ForceScorer
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.IncludesUnits
+import tech.ajones.forcebuilder.model.LoadResult
 import tech.ajones.forcebuilder.model.MatchingTechBase
 import tech.ajones.forcebuilder.model.MaximizePointsValue
 import tech.ajones.forcebuilder.model.Mini
@@ -29,24 +30,6 @@ import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.model.ajMiniNames
 import tech.ajones.forcebuilder.model.tomasMiniNames
 import java.util.concurrent.atomic.AtomicInteger
-
-sealed interface LoadResult<out T> {
-  /**
-   * The result is loading/processing. If non-null, [progress] should be a value in
-   * [0, 1], where 0 is no progress, and 1 is finished.
-   */
-  open class Loading(val progress: Float? = null): LoadResult<Nothing>
-  data class Success<T>(val data: T): LoadResult<T>
-  data class Failure(val message: String? = null): LoadResult<Nothing>
-}
-
-/**
- * Loading result that allows cancelling the work in progress
- */
-class CancelableLoading(
-  progress: Float? = null,
-  val cancel: () -> Unit
-): LoadResult.Loading(progress = progress)
 
 class MainActivityViewModel: ViewModel() {
   private val ajMinis: MutableStateFlow<List<Mini>?> = MutableStateFlow(null)
@@ -84,17 +67,17 @@ class MainActivityViewModel: ViewModel() {
 
   fun generateRandomForce() {
     // Cancel any ongoing generation
-    (generatedForce.value as? CancelableLoading)
+    (generatedForce.value as? LoadResult.CancelableLoading)
       ?.also { it.cancel() }
 
     viewModelScope.launch(Dispatchers.Default) {
       val outerContext = this
-      generatedForce.value = CancelableLoading(cancel = { cancel() })
+      generatedForce.value = LoadResult.CancelableLoading(cancel = { cancel() })
       val progress = MutableStateFlow(0f)
       val progressJob = launch {
         progress.collectLatest {
           if (isActive) {
-            generatedForce.value = CancelableLoading(
+            generatedForce.value = LoadResult.CancelableLoading(
               progress = it,
               cancel = {
                 outerContext.cancel()
