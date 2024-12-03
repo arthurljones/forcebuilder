@@ -1,6 +1,9 @@
 package tech.ajones.forcebuilder.model
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.isActive
 import java.util.PriorityQueue
+import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
 interface ForcePriority {
@@ -161,10 +164,11 @@ class ForceScorer(
 }
 
 object ForceChooser {
-  fun chooseUnits(
+  suspend fun chooseUnits(
     scorer: ForceScorer,
     allMinis: List<Mini>,
-    initial: Set<ChosenVariant> = emptySet()
+    initial: Set<ChosenVariant> = emptySet(),
+    progress: MutableStateFlow<Float>? = null
   ): Set<ChosenVariant> {
     // TODO/Ideas:
     //  - Locked/forced units can be a force requirement, which adds its list in resolution
@@ -178,8 +182,9 @@ object ForceChooser {
     // All forces that have not been explored
     val open = PriorityQueue<ScoredForce>()
     open.offer(bestForce)
+    val totalIterations = 100
     // How many iteration loops remain, so we don't spin forever
-    var iterationsRemaining = 100
+    var iterationsRemaining = totalIterations
 
     // Minis with variants that can never meet the requirements for this force pruned.
     // Minis with no remaining variants are also pruned.
@@ -201,6 +206,7 @@ object ForceChooser {
     println("chooseUnits: allMinis: ${allMinis.size} prunedMinis: ${allMinisPruned.size}")
 
     while (
+      coroutineContext.isActive &&
       iterationsRemaining > 0
     // TODO: Additional/replacement end condition for either score above threshold or
     //  score change less than some amount over last N iterations
@@ -253,6 +259,7 @@ object ForceChooser {
         }
       println("iterating: best: $bestForce")
       iterationsRemaining--
+      progress?.value = (totalIterations - iterationsRemaining).toFloat() / totalIterations
     }
 
     println("done. best: $bestForce")

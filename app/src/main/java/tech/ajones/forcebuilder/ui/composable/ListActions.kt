@@ -17,7 +17,7 @@ import tech.ajones.forcebuilder.model.ChosenVariant
 
 @Composable
 fun ListActions(
-  units: List<ChosenVariant>
+  units: Collection<ChosenVariant>
 ) {
   Column {
     Text("Actions", style = MaterialTheme.typography.titleLarge)

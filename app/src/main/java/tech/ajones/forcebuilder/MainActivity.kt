@@ -15,7 +15,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.compose.AppTheme
 import tech.ajones.forcebuilder.ui.composable.ForceScreen
 
@@ -43,10 +42,10 @@ class MainActivity: ComponentActivity() {
               .verticalScroll(rememberScrollState())
           ) {
             ForceScreen(
-              units = model.chosen.collectAsStateWithLifecycle().value?.toList(),
+              forceSource = model.generatedForce,
               settingSource = model.forceSettings,
               lockedUnits = model.lockedUnits,
-              onRandomizeTap = model::onRandomizeTap,
+              onRandomizeTap = model::generateRandomForce,
             )
           }
         }

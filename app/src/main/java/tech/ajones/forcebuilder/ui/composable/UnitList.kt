@@ -22,7 +22,7 @@ import tech.ajones.forcebuilder.model.ChosenVariant
 
 @Composable
 fun UnitList(
-  units: List<ChosenVariant>,
+  units: Collection<ChosenVariant>,
   lockedUnits: MutableStateFlow<Set<ChosenVariant>>,
 ) {
   Column {

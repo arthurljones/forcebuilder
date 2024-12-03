@@ -5,14 +5,18 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.Json
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceChooser
@@ -28,6 +32,24 @@ import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.model.ajMiniNames
 import tech.ajones.forcebuilder.model.tomasMiniNames
 import java.util.concurrent.atomic.AtomicInteger
+
+sealed interface LoadResult<out T> {
+  /**
+   * The result is loading/processing. If non-null, [progress] should be a value in
+   * [0, 1], where 0 is no progress, and 1 is finished.
+   */
+  open class Loading(val progress: Float? = null): LoadResult<Nothing>
+  data class Success<T>(val data: T): LoadResult<T>
+  data class Failure(val message: String? = null): LoadResult<Nothing>
+}
+
+/**
+ * Loading result that allows cancelling the work in progress
+ */
+class CancelableLoading(
+  progress: Float? = null,
+  val cancel: () -> Unit
+): LoadResult.Loading(progress = progress)
 
 class MainActivityViewModel: ViewModel() {
   private val ajMinis: MutableStateFlow<List<Mini>?> = MutableStateFlow(null)
@@ -51,43 +73,69 @@ class MainActivityViewModel: ViewModel() {
       }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-  private val randomizeCount: MutableStateFlow<Int> = MutableStateFlow(0)
-
   /**
    * Units in this set will be in each generated force, even if they don't meet
    * the selected requirements
    */
   val lockedUnits: MutableStateFlow<Set<ChosenVariant>> = MutableStateFlow(emptySet())
 
-  val chosen: StateFlow<Set<ChosenVariant>?> =
-    combine(
-      availableMinis,
-      forceSettings,
-      randomizeCount
-    ) { available, settings, _ ->
-      // We don't include `lockedUnits` in the `combine` call above because
-      // we don't want to regenerate when it changes.
-      // TODO: Only generate random list on button tap
-      val locked = lockedUnits.value.toSet()
-      available?.let { minis ->
-        val scorer = ForceScorer(
-          requirements = listOfNotNull(
-            PointValueRange(max = settings.maxPointsValue),
-            MatchingTechBase(settings.techBase),
-            UnitCountRange(min = settings.minUnits, max = settings.maxUnits),
-            locked.takeIf { it.isNotEmpty() }?.let { IncludesUnits(it) }
-          ),
-          priority = MaximizePointsValue()
-        )
-        ForceChooser.chooseUnits(
-          scorer = scorer,
-          allMinis = minis,
-          initial = locked
-        )
+  /**
+   * The force that has been generated, if any
+   */
+  val generatedForce: MutableStateFlow<LoadResult<Set<ChosenVariant>>?> =
+    MutableStateFlow(null)
+
+  fun generateRandomForce() {
+    // Cancel any ongoing generation
+    (generatedForce.value as? CancelableLoading)
+      ?.also { it.cancel() }
+
+    viewModelScope.launch(Dispatchers.Default) {
+      generatedForce.value = CancelableLoading(cancel = { cancel() })
+      val progress = MutableStateFlow(0f)
+
+      supervisorScope {
+        val progressJob = launch {
+          progress.collectLatest {
+            generatedForce.value = CancelableLoading(
+              progress = it,
+              cancel = { cancel() }
+            )
+          }
+        }
+
+        val available = availableMinis.value
+        val settings = forceSettings.value
+
+        // We don't include `lockedUnits` in the `combine` call above because
+        // we don't want to regenerate when it changes.
+        // TODO: Only generate random list on button tap
+        val locked = lockedUnits.value.toSet()
+        available?.let { minis ->
+          val scorer = ForceScorer(
+            requirements = listOfNotNull(
+              PointValueRange(max = settings.maxPointsValue),
+              MatchingTechBase(settings.techBase),
+              UnitCountRange(min = settings.minUnits, max = settings.maxUnits),
+              locked.takeIf { it.isNotEmpty() }?.let { IncludesUnits(it) }
+            ),
+            priority = MaximizePointsValue()
+          )
+          ForceChooser.chooseUnits(
+            scorer = scorer,
+            allMinis = minis,
+            initial = locked,
+            progress = progress
+          ).also {
+            progressJob.cancel()
+            if (isActive) {
+              generatedForce.value = LoadResult.Success(it)
+            }
+          }
+        }
       }
     }
-      .flowOn(Dispatchers.Default)
-      .stateIn(viewModelScope, SharingStarted.Lazily, null)
+  }
 
   fun setup(context: Context, allUnitsPath: String) {
     viewModelScope.launch(Dispatchers.IO) {
@@ -106,10 +154,6 @@ class MainActivityViewModel: ViewModel() {
         units = units
       )
     }
-  }
-
-  fun onRandomizeTap() {
-    randomizeCount.update { it + 1 }
   }
 
   companion object {

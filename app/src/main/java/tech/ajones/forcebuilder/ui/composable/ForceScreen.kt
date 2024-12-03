@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,13 +15,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import tech.ajones.forcebuilder.LoadResult
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceSettings
 
 @Composable
 fun ForceScreen(
-  units: List<ChosenVariant>?,
+  forceSource: StateFlow<LoadResult<Set<ChosenVariant>>?>,
   settingSource: MutableStateFlow<ForceSettings>,
   lockedUnits: MutableStateFlow<Set<ChosenVariant>>,
   onRandomizeTap: () -> Unit
@@ -30,39 +34,89 @@ fun ForceScreen(
       settingsSource = settingSource,
       onRandomizeTap = onRandomizeTap
     )
+    val result = forceSource.collectAsStateWithLifecycle().value
 
     HorizontalDivider(Modifier.padding(vertical = 16.dp))
     Text("Force", style = MaterialTheme.typography.titleLarge)
 
-    units?.also { units ->
-      UnitList(
-        units = units,
-        lockedUnits = lockedUnits,
-      )
+    when (result) {
+      is LoadResult.Success -> {
+        UnitList(
+          units = result.data,
+          lockedUnits = lockedUnits,
+        )
 
-      HorizontalDivider(Modifier.padding(vertical = 16.dp))
+        HorizontalDivider(Modifier.padding(vertical = 16.dp))
 
-      ListActions(units)
-    } ?: run {
-      Text("No units selected")
+        ListActions(result.data)
+      }
+      is LoadResult.Loading -> {
+        Text("Loading...")
+        result.progress?.also {
+          LinearProgressIndicator(progress = { it })
+        } ?: run {
+          LinearProgressIndicator()
+        }
+      }
+      is LoadResult.Failure -> {
+        Text("Something went wrong: ${result.message}")
+      }
+      null -> {
+        Text("No force loaded")
+      }
     }
   }
 }
 
-@Preview(device = Devices.PIXEL_7)
 @Composable
-private fun ForceScreenPreview() {
+private fun ForceScreenPreviewBase(
+  force: LoadResult<Set<ChosenVariant>>?,
+  lockedUnits: Set<ChosenVariant> = emptySet()
+) {
   PreviewContainer(modifier = Modifier.fillMaxSize()) {
     Box(modifier = Modifier
       .padding(16.dp)
       .verticalScroll(rememberScrollState())
     ) {
       ForceScreen(
-        units = previewUnits,
-        lockedUnits = MutableStateFlow(emptySet()),
+        forceSource = MutableStateFlow(force),
+        lockedUnits = MutableStateFlow(lockedUnits),
         settingSource = MutableStateFlow(ForceSettings()),
         onRandomizeTap = { }
       )
     }
   }
+}
+
+@Preview(device = Devices.PIXEL_7)
+@Composable
+private fun ForceScreenSuccessPreview() {
+  ForceScreenPreviewBase(force = LoadResult.Success(previewUnits.toSet()))
+}
+
+@Preview(device = Devices.PIXEL_7)
+@Composable
+private fun ForceScreenSuccessLockedPreview() {
+  ForceScreenPreviewBase(
+    force = LoadResult.Success(previewUnits.toSet()),
+    lockedUnits = setOf(previewUnits.first())
+  )
+}
+
+@Preview(device = Devices.PIXEL_7)
+@Composable
+private fun ForceScreenLoadingPreview() {
+  ForceScreenPreviewBase(force = LoadResult.Loading(progress = 0.35f))
+}
+
+@Preview(device = Devices.PIXEL_7)
+@Composable
+private fun ForceScreenEmptyPreview() {
+  ForceScreenPreviewBase(force = null)
+}
+
+@Preview(device = Devices.PIXEL_7)
+@Composable
+private fun ForceScreenErrorPreview() {
+  ForceScreenPreviewBase(force = LoadResult.Failure("failed to reticulate splines"))
 }
