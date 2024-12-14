@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import tech.ajones.forcebuilder.model.ChosenVariant
+import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.UnitSortField
 import tech.ajones.forcebuilder.model.UnitSortOrder
 import tech.ajones.forcebuilder.model.name
@@ -48,7 +49,7 @@ private val UnitSortOrder<*,*>.directionIcon: ImageVector
 @Composable
 fun UnitList(
   units: Collection<ChosenVariant>,
-  lockedUnits: MutableStateFlow<Set<ChosenVariant>>,
+  settingsSource: MutableStateFlow<ForceSettings>,
   sortSource: MutableStateFlow<UnitSortOrder<*, *>>
 ) {
   Column {
@@ -108,7 +109,7 @@ fun UnitList(
     units.forEach { unit ->
       UnitRow(
         unit = unit,
-        lockedUnits = lockedUnits,
+        settingsSource = settingsSource,
         showCards = showCards
       )
     }
@@ -122,7 +123,7 @@ private fun UnitListPreview() {
     UnitList(
       units = previewUnits,
       sortSource = MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true)),
-      lockedUnits = MutableStateFlow(emptySet())
+      settingsSource = MutableStateFlow(ForceSettings()),
     )
   }
 }
