@@ -105,23 +105,33 @@ data class UnitVariant(
   val isSupport: Boolean = false,
 
   /**
-   * Whether this is a support (as opposed to combat) unit
+   * What combat role this unit performs
+   */
+  @SerialName("role")
+  val role: String = "Undetermined",
+
+  /**
+   * What year this variant was first introduced/created
    */
   @SerialName("year")
   val yearIntroduced: Int = 0,
 
   /**
-   * What combat role this unit performs
+   * What year this variant became Advanced tech from a higher tech level
    */
-  @SerialName("role")
-  val role: String = "Undetermined"
+  @SerialName("advTechYear")
+  val advancedTechYear: Int = 0,
+
+  /**
+   * What year this variant became Standard tech from a higher tech level
+   */
+  @SerialName("stdTechYear")
+  val standardTechYear: Int = 0,
 
   // Unused data for now
-  //  "year"
-  //  "advTechYear",
-  //  "stdTechYear",
-  //  "techBase",
-  //  "techLevel",
+  //  "techBase", // Values: IS, Clan, MixedIS, MixedClan
+  //  techLevel, // Static year-independent tech level.
+  //    //Values: Introductory, Standard, Advanced, Experimental, Unofficial);
 
   // Unused data (probably forever)
   //  "usesArcs",
