@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.UnfoldLess
+import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +34,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.UnitSortField
@@ -53,7 +56,7 @@ fun UnitList(
   settingsSource: MutableStateFlow<ForceSettings>,
   sortSource: MutableStateFlow<UnitSortOrder<*, *>>
 ) {
-  val selectedUnitState = remember { mutableStateOf<ChosenVariant?>(null) }
+  val expandedUnits = remember { mutableStateOf<Set<ChosenVariant>>(emptySet()) }
 
   Column {
     var showCards by remember { mutableStateOf(false) }
@@ -107,66 +110,26 @@ fun UnitList(
         text = "Show AS Cards",
         modifier = Modifier.align(Alignment.CenterVertically)
       )
+      Spacer(modifier = Modifier.weight(1f))
+      IconButton(
+        onClick = { expandedUnits.value = units.toSet() }
+      ) {
+        Icon(Icons.Default.UnfoldMore, "Expand all units")
+      }
+      IconButton(
+        onClick = { expandedUnits.value = emptySet() }
+      ) {
+        Icon(Icons.Default.UnfoldLess, "Collapse all units")
+      }
     }
     HorizontalDivider(modifier = Modifier.height(8.dp))
-    val selectedUnit = selectedUnitState.value
     units.forEach { unit ->
       UnitRow(
         unit = unit,
         settingsSource = settingsSource,
-        selectedUnitState = selectedUnitState,
+        expandedUnitsState = expandedUnits,
         showCards = showCards
       )
-      if (unit == selectedUnit) {
-        UnitInfoRow(
-          unit = unit,
-          settingsSource = settingsSource,
-        )
-      }
-    }
-  }
-}
-
-@Composable
-fun UnitInfoRow(
-  unit: ChosenVariant,
-  settingsSource: MutableStateFlow<ForceSettings>,
-) {
-  val settings = settingsSource.collectAsStateWithLifecycle().value
-  Column {
-    unit.unit.also {
-      Text("Type: ${it.type}")
-      Text("Size: ${it.size}")
-      Text("TMM: ${it.tmm}")
-      Text("Role: ${it.role}")
-      Text("Skill: 4") // TODO
-      Text("Damage: ${it.damageString}")
-      Text("Overheat: ${it.overheat}")
-      Text("Armor: ${it.armor}, Struc: ${it.structure}")
-      Text("Special: ${it.specials}")
-      val firstYear = it.yearIntroduced.takeIf { it >= 0 } ?: "N/A"
-      val advYear = it.advancedTechYear.takeIf { it >= 0 } ?: "N/A"
-      val stdYear = it.standardTechYear.takeIf { it >= 0 } ?: "N/A"
-      Text("Available: First: $firstYear, Adv: $advYear, Std: $stdYear")
-    }
-    Row {
-      Button(
-        onClick = {
-          settingsSource.update { settings ->
-            val lockedUnits = settings.lockedUnits
-            val unitLocked = lockedUnits.contains(unit)
-            val newLockedUnits = if (unitLocked) {
-              lockedUnits - unit
-            } else {
-              lockedUnits + unit
-            }
-            settings.copy(lockedUnits = newLockedUnits)
-          }
-        }
-      ) {
-        val text = if (settings.lockedUnits.contains(unit)) "Unlock" else "Lock"
-        Text(text)
-      }
     }
   }
 }

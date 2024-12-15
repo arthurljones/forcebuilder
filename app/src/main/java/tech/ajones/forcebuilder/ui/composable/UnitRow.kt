@@ -1,13 +1,15 @@
 package tech.ajones.forcebuilder.ui.composable
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,16 +25,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.toggle
+import tech.ajones.forcebuilder.update
 
 @Composable
 fun UnitRow(
   unit: ChosenVariant,
   settingsSource: MutableStateFlow<ForceSettings>,
-  selectedUnitState: MutableState<ChosenVariant?>,
+  expandedUnitsState: MutableState<Set<ChosenVariant>>,
   showCards: Boolean
 ) {
   Column(modifier = Modifier
-    .clickable { selectedUnitState.value = unit.takeIf { selectedUnitState.value != unit } }
+    .fillMaxWidth()
+    .clickable { expandedUnitsState.update { it.toggle(unit) } }
   ) {
     Row {
       val settings by settingsSource.collectAsStateWithLifecycle()
@@ -50,34 +55,45 @@ fun UnitRow(
       }
       Text(text = unit.toString())
     }
-    unit.unit.also { variant ->
-      variant.mulId?.takeIf { showCards }?.also {
-        UnitCard(it)
-      } ?: run {
-        if (selectedUnitState.value != unit) {
-          Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-          ) {
-            Text(variant.damageString)
-            Text("[${variant.armorStructureString}]")
-            Text("SZ ${variant.size}")
-            Text("Intro ${variant.yearIntroduced}")
-          }
-        }
-      }
+    val variant = unit.unit
+    if (expandedUnitsState.value.contains(unit)) {
+      UnitInfo(
+        unit = unit,
+        showMulCard = showCards,
+        settingsSource = settingsSource,
+      )
+    } else {
+      SimpleUnitInfo(variant)
     }
+    HorizontalDivider()
   }
 }
 
 @Preview
 @Composable
-private fun UnitRowPreviewNoCard() {
+private fun UnitRowPreview() {
+  val unit = previewUnits.first()
   PreviewContainer {
-    val selected = remember { mutableStateOf<ChosenVariant?>(null) }
+    val expanded = remember { mutableStateOf<Set<ChosenVariant>>(emptySet()) }
     UnitRow(
-      unit = previewUnits.first(),
+      unit = unit,
       settingsSource = MutableStateFlow(ForceSettings()),
-      selectedUnitState = selected,
+      expandedUnitsState = expanded,
+      showCards = false
+    )
+  }
+}
+
+@Preview
+@Composable
+private fun UnitRowPreviewWithInfo() {
+  PreviewContainer {
+    val unit = previewUnits.first()
+    val expanded = remember { mutableStateOf(setOf(unit)) }
+    UnitRow(
+      unit = unit,
+      settingsSource = MutableStateFlow(ForceSettings()),
+      expandedUnitsState = expanded,
       showCards = false
     )
   }
@@ -87,11 +103,12 @@ private fun UnitRowPreviewNoCard() {
 @Composable
 private fun UnitRowPreviewWithCard() {
   PreviewContainer {
-    val selected = remember { mutableStateOf<ChosenVariant?>(null) }
+    val unit = previewUnits.first()
+    val expanded = remember { mutableStateOf(setOf(unit)) }
     UnitRow(
-      unit = previewUnits.first(),
+      unit = unit,
       settingsSource = MutableStateFlow(ForceSettings()),
-      selectedUnitState = selected,
+      expandedUnitsState = expanded,
       showCards = true
     )
   }
