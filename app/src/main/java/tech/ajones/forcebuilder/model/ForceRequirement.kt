@@ -81,7 +81,8 @@ enum class AvailableTechLevel {
 }
 
 data class AvailabilityCriteria(
-  val era: EraSpan = Era.IlClan,
+  val minEra: Era = Era.StarLeague,
+  val maxEra: Era = Era.IlClan,
   val level: AvailableTechLevel = AvailableTechLevel.Any
 )
 
@@ -94,6 +95,6 @@ class AvailableInEra(
       AvailableTechLevel.Advanced -> unit.advancedTechYear
       AvailableTechLevel.Standard -> unit.standardTechYear
     }
-    return applicableDate <= criteria.era.end
+    return applicableDate >= criteria.minEra.start && applicableDate <= criteria.maxEra.end
   }
 }

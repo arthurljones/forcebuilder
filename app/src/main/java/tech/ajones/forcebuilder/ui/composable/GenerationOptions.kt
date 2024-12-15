@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
+import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +22,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.MainActivityViewModel.MiniLibrary
+import tech.ajones.forcebuilder.model.AvailableTechLevel
+import tech.ajones.forcebuilder.model.Era
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.TechBase
 import kotlin.math.roundToInt
@@ -31,9 +35,10 @@ fun GenerationOptions(
 ) {
   Column {
     Text("Settings", style = MaterialTheme.typography.titleLarge)
-    
+
     LibrarySelector(settingsSource = settingsSource)
     TechBaseSelector(settingsSource = settingsSource)
+    AvailabilitySelector(settingsSource = settingsSource)
     MaxPVSelector(settingsSource = settingsSource)
     MinMaxUnitsSelector(settingsSource = settingsSource)
 
@@ -83,6 +88,54 @@ private fun TechBaseSelector(
         SegmentedButtonDefaults.itemShape(index = index, count = items.size),
       ) {
         Text(text = tech.name)
+      }
+    }
+  }
+}
+
+@Composable
+private fun AvailabilitySelector(
+  settingsSource: MutableStateFlow<ForceSettings>
+) {
+  val settings by settingsSource.collectAsStateWithLifecycle()
+  val availability = settings.availability
+  val eras = Era.entries
+  val minEra = availability.minEra
+  val maxEra = availability.maxEra
+  RangeSlider(
+    value = minEra.ordinal.toFloat()..maxEra.ordinal.toFloat(),
+    onValueChange = { range ->
+      settingsSource.update { settings ->
+        val prevAvailability = settings.availability
+        val newAvailability = prevAvailability.copy(
+          minEra = eras[range.start.roundToInt()],
+          maxEra = eras[range.endInclusive.roundToInt()]
+        )
+        settings.copy(availability = newAvailability)
+      }
+    },
+    steps = eras.size-2,
+    valueRange = 0f..eras.lastIndex.toFloat()
+  )
+  val labelText = if (minEra == maxEra) {
+    minEra.name
+  } else {
+    "${minEra.name} to ${maxEra.name}"
+  }
+  Text(text = "Era: $labelText")
+  SingleChoiceSegmentedButtonRow {
+    val items = AvailableTechLevel.entries
+    items.forEachIndexed { index, item ->
+      SegmentedButton(
+        selected = availability.level == item,
+        onClick = {
+          settingsSource.update { settings ->
+            settings.copy(availability = settings.availability.copy(level = item))
+          }
+        },
+        shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size),
+      ) {
+        Text(text = item.name)
       }
     }
   }
