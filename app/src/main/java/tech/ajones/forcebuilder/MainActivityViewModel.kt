@@ -16,16 +16,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import tech.ajones.forcebuilder.model.ChosenVariant
-import tech.ajones.forcebuilder.model.ForceChooser
-import tech.ajones.forcebuilder.model.ForceScorer
 import tech.ajones.forcebuilder.model.ForceSettings
-import tech.ajones.forcebuilder.model.IncludesUnits
 import tech.ajones.forcebuilder.model.LoadResult
-import tech.ajones.forcebuilder.model.MatchingTechBase
-import tech.ajones.forcebuilder.model.MaximizePointsValue
 import tech.ajones.forcebuilder.model.Mini
-import tech.ajones.forcebuilder.model.PointValueRange
-import tech.ajones.forcebuilder.model.UnitCountRange
 import tech.ajones.forcebuilder.model.UnitSortField
 import tech.ajones.forcebuilder.model.UnitSortOrder
 import tech.ajones.forcebuilder.model.UnitVariant
@@ -58,12 +51,6 @@ class MainActivityViewModel: ViewModel() {
         MiniLibrary.Both -> (aj ?: emptyList()) + (tomas ?: emptyList())
       }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-  /**
-   * Units in this set will be in each generated force, even if they don't meet
-   * the selected requirements
-   */
-  val lockedUnits: MutableStateFlow<Set<ChosenVariant>> = MutableStateFlow(emptySet())
 
   /**
    * The force that has been generated, if any
@@ -100,27 +87,11 @@ class MainActivityViewModel: ViewModel() {
       }
 
       val result = runCatching<Set<ChosenVariant>?> {
-        val minis = availableMinis.value ?: run {
+        availableMinis.value
+          ?.let { forceSettings.value.chooseUnits(it, progress) } ?: run {
           cancel()
-          return@runCatching null
+          null
         }
-        val settings = forceSettings.value
-        val locked = lockedUnits.value.toSet()
-        val scorer = ForceScorer(
-          requirements = listOfNotNull(
-            PointValueRange(max = settings.maxPointsValue),
-            MatchingTechBase(settings.techBase),
-            UnitCountRange(min = settings.minUnits, max = settings.maxUnits),
-            locked.takeIf { it.isNotEmpty() }?.let { IncludesUnits(it) }
-          ),
-          priority = MaximizePointsValue()
-        )
-        return@runCatching ForceChooser.chooseUnits(
-          scorer = scorer,
-          allMinis = minis,
-          initial = locked,
-          progress = progress
-        )
       }
       progressJob.cancel()
       progressJob.join()

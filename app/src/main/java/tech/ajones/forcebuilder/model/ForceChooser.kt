@@ -4,15 +4,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
 import java.util.PriorityQueue
 import kotlin.coroutines.coroutineContext
-import kotlin.math.abs
-
-interface ForcePriority {
-  fun scoreForce(force: Set<ChosenVariant>): Double
-}
-
-class MaximizePointsValue: ForcePriority {
-  override fun scoreForce(force: Set<ChosenVariant>): Double = force.pvSum.toDouble()
-}
 
 /**
  * Score for whether a force meets a requirement. [distanceFromMatch] should be in range [0, 1],
@@ -29,82 +20,6 @@ value class RequirementScore(val distanceFromMatch: Double) {
   }
 }
 
-interface ForceRequirement {
-  /**
-   * Whether an individual unit could ever meet the requirement alone or as part of a force
-   */
-  fun unitCouldMeet(unit: UnitVariant): Boolean = true
-
-  /**
-   * How far [force] is from meeting this requirement
-   */
-  fun checkForce(force: Set<ChosenVariant>): RequirementScore = RequirementScore.requirementMet
-}
-
-private val Iterable<ChosenVariant>.pvSum: Int
-  get() = sumOf { it.unit.pointsValue }
-
-abstract class ValueRange(
-  private val min: Double?,
-  private val max: Double?,
-  private val maxDistance: Double,
-): ForceRequirement {
-  abstract fun forceValue(force: Set<ChosenVariant>): Double
-
-  init {
-    if (min != null && max != null && min > max) {
-      throw IllegalArgumentException("invalid range, min is more than max")
-    }
-  }
-
-  override fun checkForce(force: Set<ChosenVariant>): RequirementScore {
-    val value = forceValue(force)
-    val limit = max?.takeIf { value > it }
-      ?: min?.takeIf { value < it }
-    val score = limit
-      ?.let { abs(value - it).coerceAtMost(maxDistance) / maxDistance }
-      ?: 0.0
-    return RequirementScore(score)
-  }
-}
-
-class PointValueRange(
-  min: Int? = null,
-  max: Int? = null,
-): ValueRange(
-  min = min?.toDouble(),
-  max = max?.toDouble(),
-  maxDistance = 1000.0
-) {
-  override fun forceValue(force: Set<ChosenVariant>) = force.pvSum.toDouble()
-}
-
-class UnitCountRange(
-  min: Int? = null,
-  max: Int? = null,
-): ValueRange(
-  min = min?.toDouble(),
-  max = max?.toDouble(),
-  maxDistance = 100.0
-) {
-  override fun forceValue(force: Set<ChosenVariant>) = force.size.toDouble()
-}
-
-class MatchingTechBase(private val techBases: Set<TechBase>): ForceRequirement {
-  override fun unitCouldMeet(unit: UnitVariant): Boolean =
-    if (unit.isClan) {
-      techBases.contains(TechBase.Clan)
-    } else {
-      techBases.contains(TechBase.IS)
-    }
-}
-
-class IncludesUnits(private val units: Set<ChosenVariant>): ForceRequirement {
-  override fun checkForce(force: Set<ChosenVariant>): RequirementScore {
-    val excludedCount = (units - force).size
-    return RequirementScore(excludedCount.toDouble() / units.size)
-  }
-}
 
 data class ScoredForce(
   val units: Set<ChosenVariant>,

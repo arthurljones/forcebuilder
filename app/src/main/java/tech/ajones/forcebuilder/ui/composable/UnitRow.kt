@@ -16,26 +16,31 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.model.ChosenVariant
+import tech.ajones.forcebuilder.model.ForceSettings
 
 @Composable
 fun UnitRow(
   unit: ChosenVariant,
-  lockedUnits: MutableStateFlow<Set<ChosenVariant>>,
+  settingsSource: MutableStateFlow<ForceSettings>,
   showCards: Boolean
 ) {
   Column {
-    val locked by lockedUnits.collectAsStateWithLifecycle()
-    Row(modifier = Modifier
-      .clickable {
-        lockedUnits.update { if (it.contains(unit)) it - unit else it + unit }
+    val settings by settingsSource.collectAsStateWithLifecycle()
+    fun updateLocked(locked: (Set<ChosenVariant>) -> Boolean) {
+      settingsSource.update { settings ->
+        val newLocked = locked(settings.lockedUnits)
+        val newLockedUnits = settings.lockedUnits
+          .let { if (it.contains(unit)) it - unit else it + unit }
+        settings.copy(lockedUnits = newLockedUnits)
       }
+    }
+    Row(modifier = Modifier
+      .clickable { updateLocked { !it.contains(unit) } }
     ) {
       Checkbox(
-        checked = locked.contains(unit),
+        checked = settings.lockedUnits.contains(unit),
         modifier = Modifier.align(Alignment.CenterVertically),
-        onCheckedChange = { checked ->
-          lockedUnits.update { if (checked) it + unit else it - unit }
-        }
+        onCheckedChange = { checked -> updateLocked { checked } }
       )
 
       Column {
@@ -65,7 +70,7 @@ private fun UnitRowPreviewNoCard() {
   PreviewContainer {
     UnitRow(
       unit = previewUnits.first(),
-      lockedUnits = MutableStateFlow(emptySet()),
+      settingsSource = MutableStateFlow(ForceSettings()),
       showCards = false
     )
   }
@@ -77,7 +82,7 @@ private fun UnitRowPreviewWithCard() {
   PreviewContainer {
     UnitRow(
       unit = previewUnits.first(),
-      lockedUnits = MutableStateFlow(emptySet()),
+      settingsSource = MutableStateFlow(ForceSettings()),
       showCards = true
     )
   }

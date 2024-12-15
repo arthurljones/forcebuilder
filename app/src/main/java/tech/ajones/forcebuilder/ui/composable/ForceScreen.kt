@@ -29,7 +29,6 @@ import tech.ajones.forcebuilder.model.UnitSortOrder
 fun ForceScreen(
   forceSource: StateFlow<LoadResult<Collection<ChosenVariant>>?>,
   settingSource: MutableStateFlow<ForceSettings>,
-  lockedUnits: MutableStateFlow<Set<ChosenVariant>>,
   sortSource: MutableStateFlow<UnitSortOrder<*, *>>,
   onRandomizeTap: () -> Unit
 ) {
@@ -48,7 +47,7 @@ fun ForceScreen(
         UnitList(
           units = result.data,
           sortSource = sortSource,
-          lockedUnits = lockedUnits,
+          settingsSource = settingSource,
         )
 
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
@@ -83,7 +82,6 @@ fun ForceScreen(
 @Composable
 private fun ForceScreenPreviewBase(
   force: LoadResult<Set<ChosenVariant>>?,
-  lockedUnits: Set<ChosenVariant> = emptySet()
 ) {
   PreviewContainer(modifier = Modifier.fillMaxSize()) {
     Box(modifier = Modifier
@@ -92,7 +90,6 @@ private fun ForceScreenPreviewBase(
     ) {
       ForceScreen(
         forceSource = MutableStateFlow(force),
-        lockedUnits = MutableStateFlow(lockedUnits),
         settingSource = MutableStateFlow(ForceSettings()),
         sortSource = MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true)),
         onRandomizeTap = { }
@@ -112,7 +109,6 @@ private fun ForceScreenSuccessPreview() {
 private fun ForceScreenSuccessLockedPreview() {
   ForceScreenPreviewBase(
     force = LoadResult.Success(previewUnits.toSet()),
-    lockedUnits = setOf(previewUnits.first())
   )
 }
 
