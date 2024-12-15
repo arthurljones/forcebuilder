@@ -11,7 +11,7 @@ interface ForceRequirement {
   /**
    * How far [force] is from meeting this requirement
    */
-  fun checkForce(force: Set<ChosenVariant>): RequirementScore = RequirementScore.requirementMet
+  fun checkForce(force: Set<ForceUnit>): RequirementScore = RequirementScore.requirementMet
 }
 
 abstract class ValueRange(
@@ -19,7 +19,7 @@ abstract class ValueRange(
   private val max: Double?,
   private val maxDistance: Double,
 ): ForceRequirement {
-  abstract fun forceValue(force: Set<ChosenVariant>): Double
+  abstract fun forceValue(force: Set<ForceUnit>): Double
 
   init {
     if (min != null && max != null && min > max) {
@@ -27,7 +27,7 @@ abstract class ValueRange(
     }
   }
 
-  override fun checkForce(force: Set<ChosenVariant>): RequirementScore {
+  override fun checkForce(force: Set<ForceUnit>): RequirementScore {
     val value = forceValue(force)
     val limit = max?.takeIf { value > it }
       ?: min?.takeIf { value < it }
@@ -46,7 +46,7 @@ class PointValueRange(
   max = max?.toDouble(),
   maxDistance = 1000.0
 ) {
-  override fun forceValue(force: Set<ChosenVariant>) = force.pvSum.toDouble()
+  override fun forceValue(force: Set<ForceUnit>) = force.pvSum.toDouble()
 }
 
 class UnitCountRange(
@@ -57,7 +57,7 @@ class UnitCountRange(
   max = max?.toDouble(),
   maxDistance = 100.0
 ) {
-  override fun forceValue(force: Set<ChosenVariant>) = force.size.toDouble()
+  override fun forceValue(force: Set<ForceUnit>) = force.size.toDouble()
 }
 
 class MatchingTechBase(private val techBases: Set<TechBase>): ForceRequirement {
@@ -69,8 +69,8 @@ class MatchingTechBase(private val techBases: Set<TechBase>): ForceRequirement {
     }
 }
 
-class IncludesUnits(private val units: Set<ChosenVariant>): ForceRequirement {
-  override fun checkForce(force: Set<ChosenVariant>): RequirementScore {
+class IncludesUnits(private val units: Set<ForceUnit>): ForceRequirement {
+  override fun checkForce(force: Set<ForceUnit>): RequirementScore {
     val excludedCount = (units - force).size
     return RequirementScore(excludedCount.toDouble() / units.size)
   }

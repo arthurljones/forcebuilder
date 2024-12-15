@@ -1,9 +1,9 @@
 package tech.ajones.forcebuilder.model
 
 interface ForcePriority {
-  fun scoreForce(force: Set<ChosenVariant>): Double
+  fun scoreForce(force: Set<ForceUnit>): Double
 }
 
 class MaximizePointsValue: ForcePriority {
-  override fun scoreForce(force: Set<ChosenVariant>): Double = force.pvSum.toDouble()
+  override fun scoreForce(force: Set<ForceUnit>): Double = force.pvSum.toDouble()
 }

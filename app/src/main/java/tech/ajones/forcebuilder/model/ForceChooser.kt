@@ -22,7 +22,7 @@ value class RequirementScore(val distanceFromMatch: Double) {
 
 
 data class ScoredForce(
-  val units: Set<ChosenVariant>,
+  val units: Set<ForceUnit>,
   val score: ForceScore
 ) : Comparable<ScoredForce> {
   override fun compareTo(other: ScoredForce): Int = score.compareTo(other.score)
@@ -67,7 +67,7 @@ class ForceScorer(
   fun unitCouldMeet(unit: UnitVariant): Boolean =
     requirements.all { it.unitCouldMeet(unit) }
 
-  fun scoreForce(force: Set<ChosenVariant>): ScoredForce =
+  fun scoreForce(force: Set<ForceUnit>): ScoredForce =
     requirements.sumOf { it.checkForce(force).distanceFromMatch }
       .let {
         val score = ForceScore(
@@ -78,13 +78,18 @@ class ForceScorer(
       }
 }
 
+private data class PrunedMini(
+  val origMini: LibraryMini,
+  val possibleVariants: List<UnitVariant>
+)
+
 object ForceChooser {
   suspend fun chooseUnits(
     scorer: ForceScorer,
-    allMinis: List<Mini>,
-    initial: Set<ChosenVariant> = emptySet(),
+    allMinis: List<LibraryMini>,
+    initial: Set<ForceUnit> = emptySet(),
     progress: MutableStateFlow<Float>? = null
-  ): Set<ChosenVariant> {
+  ): Set<ForceUnit> {
     // TODO/Ideas:
     //  - Locked/forced units can be a force requirement, which adds its list in resolution
     //  - Requirements and priorities can rank next moves?
@@ -93,7 +98,7 @@ object ForceChooser {
     var bestForce = scorer.scoreForce(start)
 
     // All visited forces
-    val visited: MutableSet<Set<ChosenVariant>> = mutableSetOf(start)
+    val visited: MutableSet<Set<ForceUnit>> = mutableSetOf(start)
     // All forces that have not been explored
     val open = PriorityQueue<ScoredForce>()
     open.offer(bestForce)
@@ -107,15 +112,14 @@ object ForceChooser {
       // Shuffle for more random selection
       .shuffled()
       .map { origMini ->
-        Mini(
-          chassis = origMini.chassis,
-          possibleUnits = origMini.possibleUnits
+        PrunedMini(
+          origMini = origMini,
+          possibleVariants = origMini.variants
             .filter { scorer.unitCouldMeet(it) }
-            .shuffled(),
-          id = origMini.id
+            .shuffled()
         )
       }
-      .filter { it.possibleUnits.isNotEmpty() }
+      .filter { it.possibleVariants.isNotEmpty() }
       .toSet()
 
     //println("chooseUnits: allMinis: ${allMinis.size} prunedMinis: ${allMinisPruned.size}")
@@ -130,7 +134,7 @@ object ForceChooser {
       val force = open.poll() ?: break
       //println("iterating. force: $force")
       val forceMinis = force.units.map { it.mini }.toSet()
-      val availableMinis = allMinisPruned - forceMinis
+      val availableMinis = allMinisPruned.filter { !forceMinis.contains(it.origMini) }
 
       //println("availableMinis: ${availableMinis.size}")
 
@@ -144,9 +148,9 @@ object ForceChooser {
 
       // For each available unit, generate a new potential force with that unit added
       val nextAddedUnits = availableMinis
-        .flatMap { mini ->
-          mini.possibleUnits.map {
-            force.units + ChosenVariant(mini = mini, unit = it)
+        .flatMap { available ->
+          available.possibleVariants.map {
+            force.units + ForceUnit(mini = available.origMini, variant = it)
           }.toSet()
         }
 

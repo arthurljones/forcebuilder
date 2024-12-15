@@ -1,13 +1,13 @@
 package tech.ajones.forcebuilder.model
 
-class Mini(
+class LibraryMini(
   val chassis: String,
-  val possibleUnits: List<UnitVariant>,
+  val variants: List<UnitVariant>,
   val id: Int
 ) {
   override fun hashCode(): Int = id
   override fun equals(other: Any?): Boolean =
-    (other as? Mini)?.id == id
+    (other as? LibraryMini)?.id == id
 
   override fun toString(): String = "Mini[$id]: $chassis"
 }

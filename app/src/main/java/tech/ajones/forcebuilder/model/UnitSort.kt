@@ -1,12 +1,12 @@
 package tech.ajones.forcebuilder.model
 
 sealed class UnitSortField<T: Comparable<T>>(
-  val sortValue: (ChosenVariant) -> T
+  val sortValue: (ForceUnit) -> T
 ) {
-  data object ByName: UnitSortField<String>({ it.unit.chassis })
-  data object ByTech: UnitSortField<Boolean>({ it.unit.isClan })
-  data object ByPV: UnitSortField<Int>({ it.unit.pointsValue })
-  data object BySize: UnitSortField<Int>({ it.unit.size })
+  data object ByName: UnitSortField<String>({ it.variant.chassis })
+  data object ByTech: UnitSortField<Boolean>({ it.variant.isClan })
+  data object ByPV: UnitSortField<Int>({ it.variant.pointsValue })
+  data object BySize: UnitSortField<Int>({ it.variant.size })
 }
 
 val UnitSortField<*>.name: String
@@ -22,8 +22,8 @@ data class UnitSortOrder<T: Comparable<T>, U: Comparable<U>>(
   val secondary: UnitSortField<U>?,
   val ascending: Boolean = true
 ) {
-  val comparator: Comparator<ChosenVariant>
-    get() = Comparator { p0: ChosenVariant, p1: ChosenVariant ->
+  val comparator: Comparator<ForceUnit>
+    get() = Comparator { p0: ForceUnit, p1: ForceUnit ->
       val primary = primary.sortValue(p0).compareTo(primary.sortValue(p1))
       val result = if (primary == 0 && secondary != null) {
         secondary.sortValue(p0).compareTo(secondary.sortValue(p1))

@@ -13,11 +13,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import tech.ajones.forcebuilder.model.ChosenVariant
+import tech.ajones.forcebuilder.model.ForceUnit
 
 @Composable
 fun ListActions(
-  units: Collection<ChosenVariant>
+  units: Collection<ForceUnit>
 ) {
   Column {
     Text("Actions", style = MaterialTheme.typography.titleLarge)

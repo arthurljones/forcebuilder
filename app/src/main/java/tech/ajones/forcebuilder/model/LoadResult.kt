@@ -1,5 +1,8 @@
 package tech.ajones.forcebuilder.model
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+
 sealed class LoadResult<out T> {
   /**
    * The result is loading/processing. If non-null, [progress] should be a value in
@@ -19,9 +22,11 @@ sealed class LoadResult<out T> {
   data class Failure(val message: String? = null): LoadResult<Nothing>()
 }
 
-fun <T, U> LoadResult<T>.map(transform: (T) -> U): LoadResult<U> =
-  when (this) {
-    is LoadResult.Success -> LoadResult.Success(transform(data))
-    is LoadResult.Failure -> this
-    is LoadResult.Loading -> this
+fun <T> MutableStateFlow<LoadResult<T>?>.updateSuccess(transform: (T) -> T) {
+  update {
+    when (it) {
+      is LoadResult.Success -> LoadResult.Success(transform(it.data))
+      else -> it
+    }
   }
+}

@@ -6,9 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.compose.AppTheme
-import tech.ajones.forcebuilder.model.ChosenVariant
+import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.Damage
-import tech.ajones.forcebuilder.model.Mini
+import tech.ajones.forcebuilder.model.LibraryMini
 import tech.ajones.forcebuilder.model.UnitVariant
 
 @Composable
@@ -27,11 +27,11 @@ fun PreviewContainer(
   }
 }
 
-val previewUnits: List<ChosenVariant> = listOf(
-  Mini(
+val previewUnits: List<ForceUnit> = listOf(
+  LibraryMini(
     chassis = "Atlas",
     id = 0,
-    possibleUnits = listOf(
+    variants = listOf(
       UnitVariant(
         chassis = "Atlas",
         variant = "AS7-D",
@@ -68,10 +68,10 @@ val previewUnits: List<ChosenVariant> = listOf(
       )
     )
   ),
-  Mini(
+  LibraryMini(
     chassis = "Timber Wolf",
     id = 1,
-    possibleUnits = listOf(
+    variants = listOf(
       UnitVariant(
         chassis = "Mad Cat",
         clanChassis = "Timber Wolf",
@@ -110,10 +110,10 @@ val previewUnits: List<ChosenVariant> = listOf(
       )
     )
   ),
-  Mini(
+  LibraryMini(
     chassis = "Marauder",
     id = 2,
-    possibleUnits = listOf(
+    variants = listOf(
       UnitVariant(
         chassis = "Marauder",
         isClan = false,
@@ -150,4 +150,4 @@ val previewUnits: List<ChosenVariant> = listOf(
       ),
     )
   )
-).map { ChosenVariant(mini = it, unit = it.possibleUnits.first() ) }
+).map { ForceUnit(mini = it, variant = it.variants.first() ) }

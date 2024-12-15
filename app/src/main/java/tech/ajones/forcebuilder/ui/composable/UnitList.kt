@@ -18,7 +18,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,8 +33,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
-import tech.ajones.forcebuilder.model.ChosenVariant
+import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.model.LibraryMini
+import tech.ajones.forcebuilder.model.LoadResult
 import tech.ajones.forcebuilder.model.UnitSortField
 import tech.ajones.forcebuilder.model.UnitSortOrder
 import tech.ajones.forcebuilder.model.name
@@ -52,17 +53,20 @@ private val UnitSortOrder<*,*>.directionIcon: ImageVector
 
 @Composable
 fun UnitList(
-  units: Collection<ChosenVariant>,
+  units: Collection<ForceUnit>,
+  forceSource: MutableStateFlow<LoadResult<Set<ForceUnit>>?>,
   settingsSource: MutableStateFlow<ForceSettings>,
   sortSource: MutableStateFlow<UnitSortOrder<*, *>>
 ) {
-  val expandedUnits = remember { mutableStateOf<Set<ChosenVariant>>(emptySet()) }
+  // The expanded unit list is stored as minis instead of as force units so that
+  // minis stay expanded when their variant is changed
+  val expandedUnits = remember { mutableStateOf<Set<LibraryMini>>(emptySet()) }
 
   Column {
     var showCards by remember { mutableStateOf(false) }
     val statsStyle = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold)
     Text("Count: ${units.size}", style = statsStyle)
-    Text("PV: ${units.sumOf { it.unit.pointsValue }}", style = statsStyle)
+    Text("PV: ${units.sumOf { it.variant.pointsValue }}", style = statsStyle)
 
     Box {
       var sortExpanded by remember { mutableStateOf(false) }
@@ -112,7 +116,7 @@ fun UnitList(
       )
       Spacer(modifier = Modifier.weight(1f))
       IconButton(
-        onClick = { expandedUnits.value = units.toSet() }
+        onClick = { expandedUnits.value = units.map { it.mini }.toSet() }
       ) {
         Icon(Icons.Default.UnfoldMore, "Expand all units")
       }
@@ -127,8 +131,9 @@ fun UnitList(
       UnitRow(
         unit = unit,
         settingsSource = settingsSource,
+        forceSource = forceSource,
         expandedUnitsState = expandedUnits,
-        showCards = showCards
+        showCard = showCards
       )
     }
   }
@@ -142,6 +147,7 @@ private fun UnitListPreview() {
       units = previewUnits,
       sortSource = MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true)),
       settingsSource = MutableStateFlow(ForceSettings()),
+      forceSource = MutableStateFlow(LoadResult.Success(previewUnits.toSet()))
     )
   }
 }

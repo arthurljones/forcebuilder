@@ -15,21 +15,20 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.LoadResult
-import tech.ajones.forcebuilder.model.Mini
+import tech.ajones.forcebuilder.model.LibraryMini
 import tech.ajones.forcebuilder.model.UnitSortField
 import tech.ajones.forcebuilder.model.UnitSortOrder
 import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.model.ajMiniNames
-import tech.ajones.forcebuilder.model.map
 import tech.ajones.forcebuilder.model.tomasMiniNames
 import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivityViewModel: ViewModel() {
-  private val ajMinis: MutableStateFlow<List<Mini>?> = MutableStateFlow(null)
-  private val tomasMinis: MutableStateFlow<List<Mini>?> = MutableStateFlow(null)
+  private val ajMinis: MutableStateFlow<List<LibraryMini>?> = MutableStateFlow(null)
+  private val tomasMinis: MutableStateFlow<List<LibraryMini>?> = MutableStateFlow(null)
 
   enum class MiniLibrary {
     AJ, Tomas, Both
@@ -43,7 +42,7 @@ class MainActivityViewModel: ViewModel() {
   val allUnitsByChassis: MutableStateFlow<Map<String, List<UnitVariant>>?> =
     MutableStateFlow(null)
 
-  private val availableMinis: StateFlow<List<Mini>?> =
+  private val availableMinis: StateFlow<List<LibraryMini>?> =
     combine(ajMinis, tomasMinis, forceSettings) { aj, tomas, settings ->
       when (settings.library) {
         MiniLibrary.AJ -> aj
@@ -55,13 +54,8 @@ class MainActivityViewModel: ViewModel() {
   /**
    * The force that has been generated, if any
    */
-  private val generatedForce: MutableStateFlow<LoadResult<Set<ChosenVariant>>?> =
+  val generatedForce: MutableStateFlow<LoadResult<Set<ForceUnit>>?> =
     MutableStateFlow(null)
-
-  val sortedForce: StateFlow<LoadResult<List<ChosenVariant>>?> =
-    combine(generatedForce, sortOrder) { force, sort ->
-      force?.map { it.sortedWith(sort.comparator) }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
   fun generateRandomForce() {
     // Cancel any ongoing generation
@@ -86,7 +80,7 @@ class MainActivityViewModel: ViewModel() {
         }
       }
 
-      val result = runCatching<Set<ChosenVariant>?> {
+      val result = runCatching<Set<ForceUnit>?> {
         availableMinis.value
           ?.let { forceSettings.value.chooseUnits(it, progress) } ?: run {
           cancel()
@@ -132,16 +126,16 @@ class MainActivityViewModel: ViewModel() {
     private fun loadBakedLibrary(
       miniNames: List<String>,
       units: Map<String, List<UnitVariant>>
-    ): List <Mini> =
+    ): List <LibraryMini> =
       miniNames.map { chassis ->
         val chassisUnits = units[chassis]
           ?: run {
             Log.w("", "no units found for mini chassis '$chassis'")
             emptyList()
           }
-        Mini(
+        LibraryMini(
           chassis = chassis,
-          possibleUnits = chassisUnits,
+          variants = chassisUnits,
           id = miniIdGenerator.getAndIncrement()
         )
       }

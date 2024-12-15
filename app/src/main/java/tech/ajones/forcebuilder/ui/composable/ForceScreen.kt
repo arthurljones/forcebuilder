@@ -18,8 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import tech.ajones.forcebuilder.model.ChosenVariant
+import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.LoadResult
 import tech.ajones.forcebuilder.model.UnitSortField
@@ -27,7 +26,7 @@ import tech.ajones.forcebuilder.model.UnitSortOrder
 
 @Composable
 fun ForceScreen(
-  forceSource: StateFlow<LoadResult<Collection<ChosenVariant>>?>,
+  forceSource: MutableStateFlow<LoadResult<Set<ForceUnit>>?>,
   settingSource: MutableStateFlow<ForceSettings>,
   sortSource: MutableStateFlow<UnitSortOrder<*, *>>,
   onRandomizeTap: () -> Unit
@@ -37,40 +36,42 @@ fun ForceScreen(
       settingsSource = settingSource,
       onRandomizeTap = onRandomizeTap
     )
-    val result = forceSource.collectAsStateWithLifecycle().value
+    val forceResult = forceSource.collectAsStateWithLifecycle().value
+    val sort = sortSource.collectAsStateWithLifecycle().value
 
     HorizontalDivider(Modifier.padding(vertical = 16.dp))
     Text("Force", style = MaterialTheme.typography.titleLarge)
 
-    when (result) {
+    when (forceResult) {
       is LoadResult.Success -> {
         UnitList(
-          units = result.data,
+          units = forceResult.data.sortedWith(sort.comparator),
           sortSource = sortSource,
           settingsSource = settingSource,
+          forceSource = forceSource,
         )
 
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
 
-        ListActions(result.data)
+        ListActions(forceResult.data)
       }
       is LoadResult.Loading -> {
         Text("Loading...")
-        result.progress?.also {
+        forceResult.progress?.also {
           LinearProgressIndicator(progress = { it })
         } ?: run {
           LinearProgressIndicator()
         }
-        (result as? LoadResult.CancelableLoading)?.also {
+        (forceResult as? LoadResult.CancelableLoading)?.also {
           Button(
-            onClick = { result.cancel() }
+            onClick = { forceResult.cancel() }
           ) {
             Text("Cancel")
           }
         }
       }
       is LoadResult.Failure -> {
-        Text("Something went wrong: ${result.message}")
+        Text("Something went wrong: ${forceResult.message}")
       }
       null -> {
         Text("No force loaded")
@@ -81,7 +82,7 @@ fun ForceScreen(
 
 @Composable
 private fun ForceScreenPreviewBase(
-  force: LoadResult<Set<ChosenVariant>>?,
+  force: LoadResult<Set<ForceUnit>>?,
 ) {
   PreviewContainer(modifier = Modifier.fillMaxSize()) {
     Box(modifier = Modifier

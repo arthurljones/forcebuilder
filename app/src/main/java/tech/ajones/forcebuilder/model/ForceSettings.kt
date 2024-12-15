@@ -18,14 +18,11 @@ data class ForceSettings(
    * Units in this set will be in each generated force, even if they don't meet
    * the selected requirements
    */
-  val lockedUnits: Set<ChosenVariant> = emptySet(),
+  val lockedUnits: Set<ForceUnit> = emptySet(),
   val priority: ForcePriority = MaximizePointsValue()
 ) {
-  suspend fun chooseUnits(
-    minis: List<Mini>,
-    progress: MutableStateFlow<Float>? = null
-  ): Set<ChosenVariant> {
-    val scorer =ForceScorer(
+  val scorer: ForceScorer by lazy {
+    ForceScorer(
       requirements = listOfNotNull(
         PointValueRange(max = maxPointsValue),
         MatchingTechBase(techBase),
@@ -35,6 +32,12 @@ data class ForceSettings(
       ),
       priority = priority
     )
+  }
+
+  suspend fun chooseUnits(
+    minis: List<LibraryMini>,
+    progress: MutableStateFlow<Float>? = null
+  ): Set<ForceUnit> {
     return ForceChooser.chooseUnits(
       scorer = scorer,
       allMinis = minis,
