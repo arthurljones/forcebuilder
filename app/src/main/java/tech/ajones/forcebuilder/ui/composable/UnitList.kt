@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.model.ChosenVariant
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.UnitSortField
@@ -52,6 +53,8 @@ fun UnitList(
   settingsSource: MutableStateFlow<ForceSettings>,
   sortSource: MutableStateFlow<UnitSortOrder<*, *>>
 ) {
+  val selectedUnitState = remember { mutableStateOf<ChosenVariant?>(null) }
+
   Column {
     var showCards by remember { mutableStateOf(false) }
     val statsStyle = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold)
@@ -106,12 +109,64 @@ fun UnitList(
       )
     }
     HorizontalDivider(modifier = Modifier.height(8.dp))
+    val selectedUnit = selectedUnitState.value
     units.forEach { unit ->
       UnitRow(
         unit = unit,
         settingsSource = settingsSource,
+        selectedUnitState = selectedUnitState,
         showCards = showCards
       )
+      if (unit == selectedUnit) {
+        UnitInfoRow(
+          unit = unit,
+          settingsSource = settingsSource,
+        )
+      }
+    }
+  }
+}
+
+@Composable
+fun UnitInfoRow(
+  unit: ChosenVariant,
+  settingsSource: MutableStateFlow<ForceSettings>,
+) {
+  val settings = settingsSource.collectAsStateWithLifecycle().value
+  Column {
+    unit.unit.also {
+      Text("Type: ${it.type}")
+      Text("Size: ${it.size}")
+      Text("TMM: ${it.tmm}")
+      Text("Role: ${it.role}")
+      Text("Skill: 4") // TODO
+      Text("Damage: ${it.damageString}")
+      Text("Overheat: ${it.overheat}")
+      Text("Armor: ${it.armor}, Struc: ${it.structure}")
+      Text("Special: ${it.specials}")
+      val firstYear = it.yearIntroduced.takeIf { it >= 0 } ?: "N/A"
+      val advYear = it.advancedTechYear.takeIf { it >= 0 } ?: "N/A"
+      val stdYear = it.standardTechYear.takeIf { it >= 0 } ?: "N/A"
+      Text("Available: First: $firstYear, Adv: $advYear, Std: $stdYear")
+    }
+    Row {
+      Button(
+        onClick = {
+          settingsSource.update { settings ->
+            val lockedUnits = settings.lockedUnits
+            val unitLocked = lockedUnits.contains(unit)
+            val newLockedUnits = if (unitLocked) {
+              lockedUnits - unit
+            } else {
+              lockedUnits + unit
+            }
+            settings.copy(lockedUnits = newLockedUnits)
+          }
+        }
+      ) {
+        val text = if (settings.lockedUnits.contains(unit)) "Unlock" else "Lock"
+        Text(text)
+      }
     }
   }
 }

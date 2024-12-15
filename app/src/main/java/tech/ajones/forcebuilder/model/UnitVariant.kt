@@ -128,6 +128,12 @@ data class UnitVariant(
   @SerialName("stdTechYear")
   val standardTechYear: Int = 0,
 
+  /**
+   * Whether this variant is capable of firing at extreme range
+   */
+  @SerialName("usesE")
+  val usesExtremeRange: Boolean = false,
+
   // Unused data for now
   //  "techBase", // Values: IS, Clan, MixedIS, MixedClan
   //  techLevel, // Static year-independent tech level.
@@ -153,7 +159,12 @@ data class UnitVariant(
   val preferredChassis: String = clanChassis.takeIf { isClan && it.isNotBlank() } ?: chassis
 
   val damageString: String
-    get() = "${damage.short}/${damage.medium}/${damage.long}/${damage.extreme}"
+    get() = listOfNotNull(
+      damage.short,
+      damage.medium,
+      damage.long,
+      damage.extreme.takeIf { usesExtremeRange }
+    ).joinToString("/")
 
   val armorStructureString: String
     get() = "$armor/$structure"
