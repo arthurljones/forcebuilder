@@ -31,15 +31,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
-import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.LibraryMini
-import tech.ajones.forcebuilder.model.LoadResult
 import tech.ajones.forcebuilder.model.UnitSortField
 import tech.ajones.forcebuilder.model.UnitSortOrder
 import tech.ajones.forcebuilder.model.name
+import tech.ajones.forcebuilder.model.pointsValue
+import tech.ajones.forcebuilder.ui.binder.ForceSettingsUpdater
+import tech.ajones.forcebuilder.ui.binder.ForceUpdater
+import tech.ajones.forcebuilder.ui.binder.UnitSortOrderUpdater
+import tech.ajones.forcebuilder.update
 
 private val sortByOptions = listOf(
   UnitSortField.ByName,
@@ -52,11 +55,13 @@ private val UnitSortOrder<*,*>.directionIcon: ImageVector
   get() = if (ascending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown
 
 @Composable
-fun UnitList(
-  units: Collection<ForceUnit>,
-  forceSource: MutableStateFlow<LoadResult<Set<ForceUnit>>?>,
-  settingsSource: MutableStateFlow<ForceSettings>,
-  sortSource: MutableStateFlow<UnitSortOrder<*, *>>
+fun ForceList(
+  force: Collection<ForceUnit>,
+  forceUpdater: ForceUpdater,
+  settings: ForceSettings,
+  settingsUpdater: ForceSettingsUpdater,
+  sort: UnitSortOrder<*, *>,
+  sortUpdater: UnitSortOrderUpdater,
 ) {
   // The expanded unit list is stored as minis instead of as force units so that
   // minis stay expanded when their variant is changed
@@ -65,12 +70,11 @@ fun UnitList(
   Column {
     var showCards by remember { mutableStateOf(false) }
     val statsStyle = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold)
-    Text("Count: ${units.size}", style = statsStyle)
-    Text("PV: ${units.sumOf { it.variant.pointsValue }}", style = statsStyle)
+    Text("Count: ${force.size}", style = statsStyle)
+    Text("PV: ${force.pointsValue}", style = statsStyle)
 
     Box {
       var sortExpanded by remember { mutableStateOf(false) }
-      val sort = sortSource.collectAsStateWithLifecycle().value
 
       Button(
         onClick = { sortExpanded = true }
@@ -94,7 +98,7 @@ fun UnitList(
           }
           DropdownMenuItem(
             onClick = {
-              sortSource.value = option
+              sortUpdater.update { option }
               sortExpanded = false
             },
             leadingIcon = { Icon(imageVector = option.directionIcon, contentDescription = "Sort direction") },
@@ -116,7 +120,7 @@ fun UnitList(
       )
       Spacer(modifier = Modifier.weight(1f))
       IconButton(
-        onClick = { expandedUnits.value = units.map { it.mini }.toSet() }
+        onClick = { expandedUnits.value = force.map { it.mini }.toSet() }
       ) {
         Icon(Icons.Default.UnfoldMore, "Expand all units")
       }
@@ -127,11 +131,12 @@ fun UnitList(
       }
     }
     HorizontalDivider(modifier = Modifier.height(8.dp))
-    units.forEach { unit ->
+    force.sortedWith(sort.comparator).forEach { unit ->
       UnitRow(
         unit = unit,
-        settingsSource = settingsSource,
-        forceSource = forceSource,
+        settings = settings,
+        settingsUpdater = settingsUpdater,
+        forceUpdater = forceUpdater,
         expandedUnitsState = expandedUnits,
         showCard = showCards
       )
@@ -142,12 +147,31 @@ fun UnitList(
 @Preview
 @Composable
 private fun UnitListPreview() {
+  val sortState = remember {
+    mutableStateOf<UnitSortOrder<*,*>>(UnitSortOrder(primary = UnitSortField.ByName, ascending = true))
+  }
+  val unitsState = remember {
+    mutableStateOf(previewUnits.toSet())
+  }
   PreviewContainer {
-    UnitList(
-      units = previewUnits,
-      sortSource = MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true)),
-      settingsSource = MutableStateFlow(ForceSettings()),
-      forceSource = MutableStateFlow(LoadResult.Success(previewUnits.toSet()))
+    ForceList(
+      force = unitsState.value,
+      forceUpdater = object: ForceUpdater {
+        override fun addUnit(unit: ForceUnit) {
+          unitsState.update { it + unit }
+        }
+        override fun replaceUnit(unit: ForceUnit, replacement: ForceUnit?) {
+          unitsState.update { it - unit + listOfNotNull(replacement) }
+        }
+      },
+      settings = ForceSettings(),
+      settingsUpdater = ForceSettingsUpdater.stub,
+      sort = sortState.value,
+      sortUpdater = object: UnitSortOrderUpdater {
+        override fun update(update: (UnitSortOrder<*, *>) -> UnitSortOrder<*, *>) {
+          sortState.update(update)
+        }
+      },
     )
   }
 }

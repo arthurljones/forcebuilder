@@ -43,9 +43,11 @@ class MainActivity: ComponentActivity() {
           ) {
             ForceScreen(
               forceSource = model.generatedForce,
+              forceUpdater = model.forceUpdater,
               settingSource = model.forceSettings,
+              settingsUpdater = model.forceSettingsUpdater,
               sortSource = model.sortOrder,
-              onRandomizeTap = model::generateRandomForce,
+              sortUpdater = model.unitSortOrderUpdater,
             )
           }
         }

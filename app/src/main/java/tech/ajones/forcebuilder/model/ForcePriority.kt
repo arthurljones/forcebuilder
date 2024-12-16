@@ -5,5 +5,5 @@ interface ForcePriority {
 }
 
 class MaximizePointsValue: ForcePriority {
-  override fun scoreForce(force: Set<ForceUnit>): Double = force.pvSum.toDouble()
+  override fun scoreForce(force: Set<ForceUnit>): Double = force.pointsValue.toDouble()
 }

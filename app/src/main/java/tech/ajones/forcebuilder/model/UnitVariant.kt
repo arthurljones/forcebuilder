@@ -151,7 +151,7 @@ data class UnitVariant(
   //  "rightArc",
 
 ) {
-  override fun toString(): String = "$chassis $variant (PV: ${pointsValue})"
+  override fun toString(): String = "$chassis $variant PV: $pointsValue"
 
   /**
    * The chassis of this variant according to its tech base

@@ -12,27 +12,31 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import tech.ajones.forcebuilder.model.AvailabilityCriteria
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.ForceUnit
-import tech.ajones.forcebuilder.model.LoadResult
 import tech.ajones.forcebuilder.model.LibraryMini
+import tech.ajones.forcebuilder.model.LoadResult
+import tech.ajones.forcebuilder.model.MiniLibrary
+import tech.ajones.forcebuilder.model.OpenIntRange
 import tech.ajones.forcebuilder.model.UnitSortField
 import tech.ajones.forcebuilder.model.UnitSortOrder
 import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.model.ajMiniNames
 import tech.ajones.forcebuilder.model.tomasMiniNames
+import tech.ajones.forcebuilder.model.updateSuccess
+import tech.ajones.forcebuilder.ui.binder.ForceSettingsUpdater
+import tech.ajones.forcebuilder.ui.binder.ForceUpdater
+import tech.ajones.forcebuilder.ui.binder.UnitSortOrderUpdater
 import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivityViewModel: ViewModel() {
   private val ajMinis: MutableStateFlow<List<LibraryMini>?> = MutableStateFlow(null)
   private val tomasMinis: MutableStateFlow<List<LibraryMini>?> = MutableStateFlow(null)
-
-  enum class MiniLibrary {
-    AJ, Tomas, Both
-  }
 
   val sortOrder: MutableStateFlow<UnitSortOrder<*, *>> =
     MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true))
@@ -57,7 +61,7 @@ class MainActivityViewModel: ViewModel() {
   val generatedForce: MutableStateFlow<LoadResult<Set<ForceUnit>>?> =
     MutableStateFlow(null)
 
-  fun generateRandomForce() {
+  private fun generateRandomForce() {
     // Cancel any ongoing generation
     (generatedForce.value as? LoadResult.CancelableLoading)
       ?.also { it.cancel() }
@@ -82,7 +86,7 @@ class MainActivityViewModel: ViewModel() {
 
       val result = runCatching<Set<ForceUnit>?> {
         availableMinis.value
-          ?.let { forceSettings.value.chooseUnits(it, progress) } ?: run {
+          ?.let { forceSettings.value.generateRandomForce(it, progress) } ?: run {
           cancel()
           null
         }
@@ -114,6 +118,76 @@ class MainActivityViewModel: ViewModel() {
         miniNames = ajMiniNames,
         units = units
       )
+    }
+  }
+
+  val forceUpdater: ForceUpdater = object: ForceUpdater {
+    override fun generateRandom() {
+      generateRandomForce()
+    }
+
+    override fun addUnit(unit: ForceUnit) {
+      generatedForce.updateSuccess { it + unit }
+    }
+
+    override fun replaceUnit(unit: ForceUnit, replacement: ForceUnit?) {
+      val replacementList = listOfNotNull(replacement)
+      forceSettings.update { settings ->
+        val newLocked = settings.lockedUnits - unit + replacementList
+        settings.copy(lockedUnits = newLocked)
+      }
+      generatedForce.updateSuccess { force ->
+        force - unit + replacementList
+      }
+    }
+  }
+
+  val forceSettingsUpdater: ForceSettingsUpdater = object: ForceSettingsUpdater {
+    override fun toggleUnitLocked(unit: ForceUnit) {
+      forceSettings.update { settings ->
+        val lockedUnits = settings.lockedUnits
+        val unitLocked = lockedUnits.contains(unit)
+        val newLockedUnits = if (unitLocked) {
+          lockedUnits - unit
+        } else {
+          lockedUnits + unit
+        }
+        settings.copy(lockedUnits = newLockedUnits)
+      }
+    }
+
+    override fun updateAvailability(update: (AvailabilityCriteria) -> AvailabilityCriteria) {
+      forceSettings.update { settings ->
+        settings.copy(availability = update(settings.availability))
+      }
+    }
+
+    override fun updateLibrary(update: (MiniLibrary) -> MiniLibrary) {
+      forceSettings.update { settings ->
+        settings.copy(library = update(settings.library))
+      }
+    }
+
+    override fun updateMaxPointsValue(update: (Int) -> Int) {
+      forceSettings.update { settings ->
+        settings.copy(maxPointsValue = update(settings.maxPointsValue))
+      }
+    }
+
+    override fun updateUnitLimit(update: (OpenIntRange) -> OpenIntRange) {
+      forceSettings.update { settings ->
+        settings.copy(unitLimit = update(settings.unitLimit))
+      }
+    }
+
+    override fun update(update: (ForceSettings) -> ForceSettings) {
+      forceSettings.update(update)
+    }
+  }
+
+  val unitSortOrderUpdater: UnitSortOrderUpdater = object: UnitSortOrderUpdater {
+    override fun update(update: (UnitSortOrder<*, *>) -> UnitSortOrder<*, *>) {
+      sortOrder.update(update)
     }
   }
 

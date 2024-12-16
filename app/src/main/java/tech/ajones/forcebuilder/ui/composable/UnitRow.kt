@@ -1,11 +1,11 @@
 package tech.ajones.forcebuilder.ui.composable
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -17,22 +17,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.ForceSettings
+import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.LibraryMini
-import tech.ajones.forcebuilder.model.LoadResult
-import tech.ajones.forcebuilder.model.UnitVariant
 import tech.ajones.forcebuilder.toggle
+import tech.ajones.forcebuilder.ui.binder.ForceSettingsUpdater
+import tech.ajones.forcebuilder.ui.binder.ForceUpdater
 import tech.ajones.forcebuilder.update
 
 @Composable
 fun UnitRow(
   unit: ForceUnit,
-  settingsSource: MutableStateFlow<ForceSettings>,
-  forceSource: MutableStateFlow<LoadResult<Set<ForceUnit>>?>,
+  settings: ForceSettings,
+  settingsUpdater: ForceSettingsUpdater,
+  forceUpdater: ForceUpdater,
   expandedUnitsState: MutableState<Set<LibraryMini>>,
   showCard: Boolean
 ) {
@@ -40,13 +38,10 @@ fun UnitRow(
     .fillMaxWidth()
     .clickable { expandedUnitsState.update { it.toggle(unit.mini) } }
   ) {
-    val lockedUnits = remember {
-      settingsSource.map { it.lockedUnits }
-    }.collectAsStateWithLifecycle(emptySet()).value
     UnitRowHeader(
-      unit = unit.variant,
+      unit = unit,
       icons = listOfNotNull(
-        unitLockedIcon.takeIf { lockedUnits.contains(unit) }
+        unitLockedIcon.takeIf { settings.lockedUnits.contains(unit) }
       )
     )
 
@@ -55,8 +50,9 @@ fun UnitRow(
       UnitInfo(
         unit = unit,
         showMulCard = showCard,
-        settingsSource = settingsSource,
-        forceSource = forceSource,
+        forceUpdater = forceUpdater,
+        settings = settings,
+        settingsUpdater = settingsUpdater,
       )
     } else {
       SimpleUnitInfo(variant)
@@ -67,18 +63,26 @@ fun UnitRow(
 
 @Composable
 fun UnitRowHeader(
-  unit: UnitVariant,
+  unit: ForceUnit,
   icons: List<UnitIcon> = emptyList()
 ) {
-  Row {
-    Text(text = unit.toString())
-    Spacer(modifier = Modifier.weight(1f))
+  Row(
+    modifier = Modifier.fillMaxWidth()
+  ){
+    // Use up all remaining space after the icons render
+    Box(modifier = Modifier.weight(1f)) {
+      Text(
+        text = unit.toString(),
+        // Keep the text on the left/start if it's not as wide as the space
+        modifier = Modifier.align(Alignment.CenterStart)
+      )
+    }
     icons.forEach {
       Icon(
         imageVector = it.icon,
         contentDescription = it.contentDescription,
         modifier = Modifier
-          .size(18.dp)
+          .widthIn(min = 18.dp)
           .align(Alignment.CenterVertically),
       )
     }
@@ -96,9 +100,10 @@ private fun UnitRowPreview(
     val expanded = remember { mutableStateOf(setOfNotNull(unit.mini.takeIf { expandUnit })) }
     UnitRow(
       unit = unit,
-      settingsSource = MutableStateFlow(ForceSettings()),
+      settings = ForceSettings(),
+      settingsUpdater = ForceSettingsUpdater.stub,
+      forceUpdater = ForceUpdater.stub,
       expandedUnitsState = expanded,
-      forceSource = MutableStateFlow(LoadResult.Success(setOf(unit))),
       showCard = showCard
     )
   }

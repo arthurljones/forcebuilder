@@ -20,30 +20,33 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
-import tech.ajones.forcebuilder.MainActivityViewModel.MiniLibrary
+import kotlinx.coroutines.flow.StateFlow
+import tech.ajones.forcebuilder.model.MiniLibrary
 import tech.ajones.forcebuilder.model.AvailableTechLevel
 import tech.ajones.forcebuilder.model.Era
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.TechBase
+import tech.ajones.forcebuilder.ui.binder.ForceSettingsUpdater
+import tech.ajones.forcebuilder.ui.binder.ForceUpdater
 import kotlin.math.roundToInt
 
 @Composable
 fun GenerationOptions(
-  settingsSource: MutableStateFlow<ForceSettings>,
-  onRandomizeTap: () -> Unit
+  forceUpdater: ForceUpdater,
+  settingsSource: StateFlow<ForceSettings>,
+  settingsUpdater: ForceSettingsUpdater,
 ) {
   Column {
     Text("Settings", style = MaterialTheme.typography.titleLarge)
 
-    LibrarySelector(settingsSource = settingsSource)
-    TechBaseSelector(settingsSource = settingsSource)
-    AvailabilitySelector(settingsSource = settingsSource)
-    MaxPVSelector(settingsSource = settingsSource)
-    MinMaxUnitsSelector(settingsSource = settingsSource)
+    LibrarySelector(settingsSource = settingsSource, settingsUpdater = settingsUpdater)
+    TechBaseSelector(settingsSource = settingsSource, settingsUpdater = settingsUpdater)
+    AvailabilitySelector(settingsSource = settingsSource, settingsUpdater = settingsUpdater)
+    MaxPVSelector(settingsSource = settingsSource, settingsUpdater = settingsUpdater)
+    MinMaxUnitsSelector(settingsSource = settingsSource, settingsUpdater = settingsUpdater)
 
     Button(
-      onClick = { onRandomizeTap() }
+      onClick = { forceUpdater.generateRandom() }
     ) {
       Text("Randomize")
     }
@@ -52,7 +55,8 @@ fun GenerationOptions(
 
 @Composable
 private fun LibrarySelector(
-  settingsSource: MutableStateFlow<ForceSettings>
+  settingsSource: StateFlow<ForceSettings>,
+  settingsUpdater: ForceSettingsUpdater,
 ) {
   val settings by settingsSource.collectAsStateWithLifecycle()
   MultiChoiceSegmentedButtonRow {
@@ -60,7 +64,7 @@ private fun LibrarySelector(
     items.forEachIndexed { index, library ->
       SegmentedButton(
         checked = settings.library == library,
-        onCheckedChange = { settingsSource.update { it.copy(library = library) } },
+        onCheckedChange = { settingsUpdater.updateLibrary { library } },
         SegmentedButtonDefaults.itemShape(index = index, count = items.size),
       ) {
         Text(text = library.name)
@@ -71,7 +75,8 @@ private fun LibrarySelector(
 
 @Composable
 private fun TechBaseSelector(
-  settingsSource: MutableStateFlow<ForceSettings>
+  settingsSource: StateFlow<ForceSettings>,
+  settingsUpdater: ForceSettingsUpdater,
 ) {
   val settings by settingsSource.collectAsStateWithLifecycle()
   MultiChoiceSegmentedButtonRow {
@@ -80,7 +85,7 @@ private fun TechBaseSelector(
       SegmentedButton(
         checked = settings.techBase.contains(tech),
         onCheckedChange = { checked ->
-          settingsSource.update {
+          settingsUpdater.update {
             val newVal = if (checked) it.techBase + tech else it.techBase - tech
             it.copy(techBase = newVal)
           }
@@ -95,7 +100,8 @@ private fun TechBaseSelector(
 
 @Composable
 private fun AvailabilitySelector(
-  settingsSource: MutableStateFlow<ForceSettings>
+  settingsSource: StateFlow<ForceSettings>,
+  settingsUpdater: ForceSettingsUpdater,
 ) {
   val settings by settingsSource.collectAsStateWithLifecycle()
   val availability = settings.availability
@@ -105,13 +111,11 @@ private fun AvailabilitySelector(
   RangeSlider(
     value = minEra.ordinal.toFloat()..maxEra.ordinal.toFloat(),
     onValueChange = { range ->
-      settingsSource.update { settings ->
-        val prevAvailability = settings.availability
-        val newAvailability = prevAvailability.copy(
+      settingsUpdater.updateAvailability {
+        it.copy(
           minEra = eras[range.start.roundToInt()],
           maxEra = eras[range.endInclusive.roundToInt()]
         )
-        settings.copy(availability = newAvailability)
       }
     },
     steps = eras.size-2,
@@ -129,9 +133,7 @@ private fun AvailabilitySelector(
       SegmentedButton(
         selected = availability.level == item,
         onClick = {
-          settingsSource.update { settings ->
-            settings.copy(availability = settings.availability.copy(level = item))
-          }
+          settingsUpdater.updateAvailability { it.copy(level = item) }
         },
         shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size),
       ) {
@@ -143,7 +145,8 @@ private fun AvailabilitySelector(
 
 @Composable
 private fun MaxPVSelector(
-  settingsSource: MutableStateFlow<ForceSettings>
+  settingsSource: StateFlow<ForceSettings>,
+  settingsUpdater: ForceSettingsUpdater,
 ) {
   val settings by settingsSource.collectAsStateWithLifecycle()
   val max = 800
@@ -151,7 +154,7 @@ private fun MaxPVSelector(
   Slider(
     value = settings.maxPointsValue.toFloat(),
     onValueChange = { newPointsMax ->
-      settingsSource.update { it.copy(maxPointsValue = newPointsMax.roundToInt()) }
+      settingsUpdater.updateMaxPointsValue { newPointsMax.roundToInt() }
     },
     steps = max / step - 1,
     valueRange = 0f..max.toFloat()
@@ -160,16 +163,15 @@ private fun MaxPVSelector(
     value = settings.maxPointsValue,
     label = { Text("Max PV") },
     onValueChange = { value ->
-      settingsSource.update {
-        it.copy(maxPointsValue = value ?: 0)
-      }
+      settingsUpdater.updateMaxPointsValue { value ?: 0 }
     }
   )
 }
 
 @Composable
 private fun MinMaxUnitsSelector(
-  settingsSource: MutableStateFlow<ForceSettings>
+  settingsSource: StateFlow<ForceSettings>,
+  settingsUpdater: ForceSettingsUpdater,
 ) {
   val settings by settingsSource.collectAsStateWithLifecycle()
   Row {
@@ -178,16 +180,16 @@ private fun MinMaxUnitsSelector(
       label = { Text("Min Units") },
       modifier = Modifier.weight(1f),
       onValueChange = { newValue ->
-        settingsSource.update { it.copy(minUnits = newValue) }
+        settingsUpdater.updateUnitLimit { it.copy(min = newValue) }
       },
     )
     Spacer(modifier = Modifier.size(4.dp))
     IntField(
-      value = settings.maxUnits,
+      value = settings.unitLimit.max,
       label = { Text("Max Units") },
       modifier = Modifier.weight(1f),
       onValueChange = { newValue ->
-        settingsSource.update { it.copy(maxUnits = newValue) }
+        settingsUpdater.updateUnitLimit { it.copy(max = newValue) }
       },
     )
   }
@@ -198,8 +200,9 @@ private fun MinMaxUnitsSelector(
 private fun GenerationOptionsPreview() {
   PreviewContainer {
     GenerationOptions(
+      forceUpdater = ForceUpdater.stub,
       settingsSource = MutableStateFlow(ForceSettings()),
-      onRandomizeTap = { }
+      settingsUpdater = ForceSettingsUpdater.stub,
     )
   }
 }

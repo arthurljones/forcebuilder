@@ -15,23 +15,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.ForceUnit
-import tech.ajones.forcebuilder.model.LoadResult
 import tech.ajones.forcebuilder.model.UnitVariant
-import tech.ajones.forcebuilder.model.updateSuccess
+import tech.ajones.forcebuilder.ui.binder.ForceSettingsUpdater
+import tech.ajones.forcebuilder.ui.binder.ForceUpdater
 import tech.ajones.forcebuilder.update
 
 @Composable
 fun UnitInfo(
   unit: ForceUnit,
   showMulCard: Boolean,
-  settingsSource: MutableStateFlow<ForceSettings>,
-  forceSource: MutableStateFlow<LoadResult<Set<ForceUnit>>?>,
+  forceUpdater: ForceUpdater,
+  settings: ForceSettings,
+  settingsUpdater: ForceSettingsUpdater,
   modifier: Modifier = Modifier
 ) {
   val showVariantsState = remember { mutableStateOf(false) }
@@ -42,8 +39,22 @@ fun UnitInfo(
     } ?: run {
       Column(modifier = Modifier.padding(start = 32.dp)) {
         Text("Mini: ${unit.mini.chassis}")
+        Text("Base PV: ${unit.variant.pointsValue}")
         Text("TP: ${variant.type} SZ: ${variant.size} TMM: ${variant.tmm} MV: ${variant.movement}")
-        Text("Role: ${variant.role} Skill: 4") // TODO: Adjustable skill
+        Text("Role: ${variant.role}")
+        // TODO: Should be slider or other explicit list
+        IntField(
+          value = unit.skill,
+          onValueChange = { newSkill ->
+            forceUpdater.replaceUnit(
+              unit = unit,
+              replacement = unit.copy(skill = newSkill ?: settings.defaultSkill)
+            )
+          },
+          label = {
+            Text("Skill")
+          }
+        )
         Text("OV: ${variant.overheat} DMG: ${variant.damageString}")
         Text("A: ${variant.armor}, S: ${variant.structure}")
         Text("Special: ${variant.specials}")
@@ -54,38 +65,33 @@ fun UnitInfo(
       }
     }
     Row {
-      UnitLockButton(settingsSource, unit)
+      UnitLockButton(
+        unit = unit,
+        settings = settings,
+        settingsUpdater = settingsUpdater
+      )
       ShowUnitVariantsButton(showVariantsState)
     }
     if (showVariantsState.value) {
-      UnitVariantsList(settingsSource, forceSource, unit)
+      UnitVariantsList(
+        unit = unit,
+        settings = settings,
+        forceUpdater = forceUpdater
+      )
     }
   }
 }
 
 @Composable
 private fun UnitLockButton(
-  settingsSource: MutableStateFlow<ForceSettings>,
   unit: ForceUnit,
+  settings: ForceSettings,
+  settingsUpdater: ForceSettingsUpdater
 ) {
   Button(
-    onClick = {
-      settingsSource.update { settings ->
-        val lockedUnits = settings.lockedUnits
-        val unitLocked = lockedUnits.contains(unit)
-        val newLockedUnits = if (unitLocked) {
-          lockedUnits - unit
-        } else {
-          lockedUnits + unit
-        }
-        settings.copy(lockedUnits = newLockedUnits)
-      }
-    }
+    onClick = { settingsUpdater.toggleUnitLocked(unit) }
   ) {
-    val lockedUnits = remember {
-      settingsSource.map { it.lockedUnits }
-    }.collectAsStateWithLifecycle(emptySet()).value
-    val text = if (lockedUnits.contains(unit)) "Unlock" else "Lock"
+    val text = if (settings.lockedUnits.contains(unit)) "Unlock" else "Lock"
     Text(text)
   }
 }
@@ -104,26 +110,21 @@ private fun ShowUnitVariantsButton(
 
 @Composable
 private fun UnitVariantsList(
-  settingsSource: MutableStateFlow<ForceSettings>,
-  forceSource: MutableStateFlow<LoadResult<Set<ForceUnit>>?>,
-  unit: ForceUnit
+  unit: ForceUnit,
+  settings: ForceSettings,
+  forceUpdater: ForceUpdater,
 ) {
-  val settings = settingsSource.collectAsStateWithLifecycle().value
   unit.mini.variants
     .sortedBy { it.variant }
     .forEach { possibleVariant ->
+      val possibleUnit = unit.copy(variant = possibleVariant)
       Column(modifier = Modifier
         .padding(start = 24.dp)
         .fillMaxWidth()
-        .clickable {
-          if (unit.variant != possibleVariant) {
-            val newUnit = unit.copy(variant = possibleVariant)
-            forceSource.updateSuccess { it - unit + newUnit }
-          }
-        }
+        .clickable { forceUpdater.replaceUnit(unit, possibleUnit) }
       ) {
         UnitRowHeader(
-          unit = possibleVariant,
+          unit = possibleUnit,
           icons = listOfNotNull(
             unitSelectedIcon.takeIf { unit.variant == possibleVariant },
             unitForbiddenIcon.takeIf { !settings.scorer.unitCouldMeet(possibleVariant) }

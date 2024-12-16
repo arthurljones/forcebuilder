@@ -5,7 +5,7 @@ sealed class UnitSortField<T: Comparable<T>>(
 ) {
   data object ByName: UnitSortField<String>({ it.variant.chassis })
   data object ByTech: UnitSortField<Boolean>({ it.variant.isClan })
-  data object ByPV: UnitSortField<Int>({ it.variant.pointsValue })
+  data object ByPV: UnitSortField<Int>({ it.pointsValue })
   data object BySize: UnitSortField<Int>({ it.variant.size })
 }
 

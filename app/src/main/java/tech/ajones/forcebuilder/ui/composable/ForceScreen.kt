@@ -18,37 +18,47 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import tech.ajones.forcebuilder.model.ForceUnit
 import tech.ajones.forcebuilder.model.ForceSettings
 import tech.ajones.forcebuilder.model.LoadResult
 import tech.ajones.forcebuilder.model.UnitSortField
 import tech.ajones.forcebuilder.model.UnitSortOrder
+import tech.ajones.forcebuilder.ui.binder.ForceSettingsUpdater
+import tech.ajones.forcebuilder.ui.binder.ForceUpdater
+import tech.ajones.forcebuilder.ui.binder.UnitSortOrderUpdater
 
 @Composable
 fun ForceScreen(
-  forceSource: MutableStateFlow<LoadResult<Set<ForceUnit>>?>,
-  settingSource: MutableStateFlow<ForceSettings>,
-  sortSource: MutableStateFlow<UnitSortOrder<*, *>>,
-  onRandomizeTap: () -> Unit
+  forceSource: StateFlow<LoadResult<Set<ForceUnit>>?>,
+  forceUpdater: ForceUpdater,
+  settingSource: StateFlow<ForceSettings>,
+  settingsUpdater: ForceSettingsUpdater,
+  sortSource: StateFlow<UnitSortOrder<*, *>>,
+  sortUpdater: UnitSortOrderUpdater,
 ) {
   Column {
     GenerationOptions(
+      forceUpdater = forceUpdater,
       settingsSource = settingSource,
-      onRandomizeTap = onRandomizeTap
+      settingsUpdater = settingsUpdater,
     )
     val forceResult = forceSource.collectAsStateWithLifecycle().value
     val sort = sortSource.collectAsStateWithLifecycle().value
+    val settings = settingSource.collectAsStateWithLifecycle().value
 
     HorizontalDivider(Modifier.padding(vertical = 16.dp))
     Text("Force", style = MaterialTheme.typography.titleLarge)
 
     when (forceResult) {
       is LoadResult.Success -> {
-        UnitList(
-          units = forceResult.data.sortedWith(sort.comparator),
-          sortSource = sortSource,
-          settingsSource = settingSource,
-          forceSource = forceSource,
+        ForceList(
+          force = forceResult.data,
+          forceUpdater = forceUpdater,
+          settings = settings,
+          settingsUpdater = settingsUpdater,
+          sort = sort,
+          sortUpdater = sortUpdater,
         )
 
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
@@ -91,9 +101,11 @@ private fun ForceScreenPreviewBase(
     ) {
       ForceScreen(
         forceSource = MutableStateFlow(force),
+        forceUpdater = ForceUpdater.stub,
         settingSource = MutableStateFlow(ForceSettings()),
+        settingsUpdater = ForceSettingsUpdater.stub,
         sortSource = MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true)),
-        onRandomizeTap = { }
+        sortUpdater = UnitSortOrderUpdater.stub,
       )
     }
   }

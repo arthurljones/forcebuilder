@@ -46,15 +46,14 @@ class PointValueRange(
   max = max?.toDouble(),
   maxDistance = 1000.0
 ) {
-  override fun forceValue(force: Set<ForceUnit>) = force.pvSum.toDouble()
+  override fun forceValue(force: Set<ForceUnit>) = force.pointsValue.toDouble()
 }
 
 class UnitCountRange(
-  min: Int? = null,
-  max: Int? = null,
+  range: OpenIntRange,
 ): ValueRange(
-  min = min?.toDouble(),
-  max = max?.toDouble(),
+  min = range.min?.toDouble(),
+  max = range.max?.toDouble(),
   maxDistance = 100.0
 ) {
   override fun forceValue(force: Set<ForceUnit>) = force.size.toDouble()
