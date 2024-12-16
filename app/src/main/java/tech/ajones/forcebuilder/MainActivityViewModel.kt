@@ -139,8 +139,11 @@ class MainActivityViewModel: ViewModel() {
     override fun replaceUnit(unit: ForceUnit, replacement: ForceUnit?) {
       val replacementList = listOfNotNull(replacement)
       forceSettings.update { settings ->
-        val newLocked = settings.lockedUnits - unit + replacementList
-        settings.copy(lockedUnits = newLocked)
+        // Only do replacement on locked units set if the original unit's mini is present
+        settings.lockedUnits
+          .firstOrNull { it.mini == unit.mini }
+          ?.let { settings.copy(lockedUnits = settings.lockedUnits - it + replacementList) }
+          ?: settings
       }
       generatedForce.updateSuccess { force ->
         force - unit + replacementList
