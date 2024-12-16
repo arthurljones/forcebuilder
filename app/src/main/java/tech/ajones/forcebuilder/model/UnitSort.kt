@@ -3,7 +3,7 @@ package tech.ajones.forcebuilder.model
 sealed class UnitSortField<T: Comparable<T>>(
   val sortValue: (ForceUnit) -> T
 ) {
-  data object ByName: UnitSortField<String>({ it.variant.chassis })
+  data object ByName: UnitSortField<String>({ it.variant.chassis + it.variant.variant })
   data object ByTech: UnitSortField<Boolean>({ it.variant.isClan })
   data object ByPV: UnitSortField<Int>({ it.pointsValue })
   data object BySize: UnitSortField<Int>({ it.variant.size })

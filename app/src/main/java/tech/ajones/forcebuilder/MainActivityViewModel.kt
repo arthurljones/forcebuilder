@@ -39,7 +39,13 @@ class MainActivityViewModel: ViewModel() {
   private val tomasMinis: MutableStateFlow<List<LibraryMini>?> = MutableStateFlow(null)
 
   val sortOrder: MutableStateFlow<UnitSortOrder<*, *>> =
-    MutableStateFlow(UnitSortOrder(primary = UnitSortField.ByName, ascending = true))
+    MutableStateFlow(
+      UnitSortOrder(
+        primary = UnitSortField.ByName,
+        secondary = UnitSortField.ByName,
+        ascending = true
+      )
+    )
 
   val forceSettings: MutableStateFlow<ForceSettings> = MutableStateFlow(ForceSettings())
 
