@@ -17,8 +17,6 @@ data class ForceSettings(
   val techBase: Set<TechBase> = TechBase.entries.toSet(),
   val maxPointsValue: Int = 300,
   val unitLimit: OpenIntRange = OpenIntRange(),
-  val maxUnits: Int? = unitLimit.max,
-  val minUnits: Int? = unitLimit.min,
   val availability: AvailabilityCriteria = AvailabilityCriteria(),
   /**
    * Units in this set will be in each generated force, even if they don't meet
@@ -28,6 +26,9 @@ data class ForceSettings(
   val defaultSkill: Int = 4,
   val priority: ForcePriority = MaximizePointsValue()
 ) {
+  val maxUnits: Int? get() = unitLimit.max
+  val minUnits: Int? get() = unitLimit.min
+
   val scorer: ForceScorer by lazy {
     ForceScorer(
       requirements = listOfNotNull(

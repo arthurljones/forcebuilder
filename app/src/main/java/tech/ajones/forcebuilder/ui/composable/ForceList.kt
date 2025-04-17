@@ -157,6 +157,7 @@ private fun UnitListPreview() {
     ForceList(
       force = unitsState.value,
       forceUpdater = object: ForceUpdater {
+        override fun generateRandom() { }
         override fun addUnit(unit: ForceUnit) {
           unitsState.update { it + unit }
         }
